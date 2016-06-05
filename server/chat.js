@@ -111,6 +111,15 @@ var chat = {
 	sendMessage: function(room, userId, messages){
 		for (var key in messages) {
 			messages[key].my = (messages[key].user_id == userId);
+			messages[key].type = '';
+			switch(messages[key].object_model) {
+				case chat.objectModelUser:
+					messages[key].type = 'user';
+					break;
+				case chat.objectModelSpace:
+					messages[key].type = 'space';
+					break;
+			}
 		}
 		//console.log('in_room', chat.io.sockets.adapter.rooms[room].length);
 		chat.io.to(room).emit('message', messages);
