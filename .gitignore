@@ -1,0 +1,5 @@
+.htaccess
+.idea/*
+.gitmodules
+/composer.lock
+
