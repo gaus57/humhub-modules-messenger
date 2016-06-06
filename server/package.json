@@ -1,6 +1,10 @@
 {
   "name": "humhub chat server",
   "version": "0.0.0",
+  "main": "server.js",
+  "keywords": [],
+  "author": "Gaus",
+  "license": "ISC",
   "dependencies": {
     "socket.io": "~1.4.6",
     "mysql": "~2.10.2",

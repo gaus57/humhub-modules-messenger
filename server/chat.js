@@ -1,7 +1,6 @@
 var cookie = require('cookie');
 
 var mysql = require('mysql');
-try {
 var db = mysql.createPool({
 	//connectionLimit : 10,
   host     : 'localhost',
@@ -9,9 +8,6 @@ var db = mysql.createPool({
   password : '',
   database : 'humhub'
 });
-} catch(err) {
-	console.log(err);
-}
 
 var usersSocket = [];
 
@@ -38,12 +34,15 @@ var chat = {
 		}
 	},
 	addUserSocket: function(socket){
-		if (typeof usersSocket[socket.userId] != 'array') {
-			usersSocket[socket.userId] = [socket];
-		} else {
-			usersSocket[socket.userId].push(socket);
+		if (typeof usersSocket[socket.userId] == 'undefined') {
+			usersSocket[socket.userId] = {};
 		}
-		console.log('user '+socket.userId+' has '+usersSocket[socket.userId].length+' sockets');
+		usersSocket[socket.userId][socket.id] = socket;
+		var n = 0; for (var key in usersSocket[socket.userId]) { n++; }
+		console.log('user '+socket.userId+' has '+n+' sockets');
+	},
+	removeUserSocket: function(socket){
+		delete usersSocket[socket.userId][socket.id];
 	},
 	getUserRoom: function(users){
 		return 'user_'+users.sort().join('_');
@@ -109,6 +108,12 @@ var chat = {
 		);
 	},
 	sendMessage: function(room, userId, messages){
+		messages = chat.prepareMessages(userId, messages);
+		//console.log('in_room', chat.io.sockets.adapter.rooms[room].length);
+		chat.io.to(room).emit('chat-messages', {items: messages, append: true});
+		console.log(room+' send message');
+	},
+	prepareMessages: function(userId, messages){
 		for (var key in messages) {
 			messages[key].my = (messages[key].user_id == userId);
 			messages[key].type = '';
@@ -121,20 +126,66 @@ var chat = {
 					break;
 			}
 		}
-		//console.log('in_room', chat.io.sockets.adapter.rooms[room].length);
-		chat.io.to(room).emit('message', messages);
-		console.log(room+' send message');
+		return messages;
 	},
 	messageById: function(id, callback){
 		db.query(
-			"SELECT * FROM chat_message WHERE id = ?",
-			[id],
+			"SELECT cm.*, cmr.read_at FROM chat_message cm LEFT JOIN chat_message_read cmr ON cm.object_model = ? AND cm.object_id = cmr.user_id WHERE cm.id = ?",
+			[chat.objectModelUser, id],
 			function(err, rows, fields){
 				if (err) throw err;
 				callback(rows);
 			}
 		);
-	}
+	},
+	chatsList: function(userId, callback){
+		db.query(
+			"SELECT u.id, 'user' as type, u.guid, CONCAT_WS(' ', p.firstname, p.lastname) as name, p.title "+
+				"FROM user u, profile p, chat_message cm "+
+				"WHERE u.id = p.user_id AND u.id = cm.object_id AND cm.user_id = ? AND cm.object_model = ? "+
+				"GROUP BY 1 "+
+				"UNION ALL SELECT s.id, 'space' as type, s.guid, s.name, s.description as title "+
+				"FROM space s, chat_message cm "+
+				"WHERE s.id = cm.object_id AND cm.user_id = ? AND cm.object_model = ? "+
+				"GROUP BY 1",
+			[userId, chat.objectModelUser, userId, chat.objectModelSpace],
+			function(err, rows, fields){
+				if (err) throw err;
+				callback(rows);
+			}
+		);
+	},
+	getChatList: function(socket, data){
+		chat.chatsList(socket.userId, function(items){
+			console.log('user', socket.userId, 'send chat-list');
+			socket.emit('chat-list', items);
+		});
+	},
+	getChatMessages: function(socket, params){
+		chat.chatMessages(params.id, params.type, params.time, function(items){
+			items = chat.prepareMessages(socket.userId, items);
+			console.log('chat messages ', params.type, params.id);
+			socket.emit('chat-messages', {items: items, append: true});
+		});
+	},
+	chatMessages: function(id, type, time, callback){
+		switch (type) {
+			case 'user':
+				type = chat.objectModelUser;
+				break;
+			case 'space':
+				type = chat.objectModelSpace;
+				break;
+		}
+		db.query(
+			"SELECT cm.*, cmr.read_at FROM chat_message cm LEFT JOIN chat_message_read cmr ON cm.object_model = ? AND cm.object_id = cmr.user_id WHERE "+(type == chat.objectModelUser ? "cm.object_model = ? AND (cm.user_id = ? OR cm.object_id = ?) " : "cm.object_model = ? AND cm.object_id = ? ORDER BY cm.created_at"),
+			[chat.objectModelUser, type, id, id],
+			function(err, rows, fields){
+				if (err) throw err;
+				callback(rows);
+			}
+		);
+	},
 };
 
 module.exports = chat;
