@@ -1,5 +1,5 @@
 {
-  "name": "humhub chat server",
+  "name": "humhub-chat-server",
   "version": "0.0.0",
   "main": "server.js",
   "keywords": [],

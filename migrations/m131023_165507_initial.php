@@ -23,6 +23,15 @@ class m131023_165507_initial extends Migration
             'read_at' => 'datetime NOT NULL',
                 ), '');
         $this->addPrimaryKey('pk_chat_message_read', 'chat_message_read', 'chat_message_id,user_id');
+        $this->addForeignKey('fk-chat_message_read-chat_message_id', 'chat_message_read', 'chat_message_id', 'chat_message', 'id', 'CASCADE');
+
+        $this->createTable('chat_user', array(
+            'id' => 'pk',
+            'user_id' => 'int(11) NOT NULL',
+            'object_id' => 'int(11) NOT NULL',
+            'object_model' => 'varchar(255) NOT NULL DEFAULT \'\'',
+            'sort' => 'int(11) NOT NULL DEFAULT 0',
+                ), '');
     }
 
     public function down()

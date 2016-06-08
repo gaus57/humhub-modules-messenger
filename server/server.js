@@ -15,6 +15,14 @@ io.on('connection', function(socket){
 	  	chat.getChatList(socket, data);
 	  });
 
+	  socket.on('search.chat', function(data){
+	  	chat.searchChat(socket, data);
+	  });
+
+	  socket.on('add.chat', function(data){
+	  	chat.addChat(socket, data);
+	  });
+
 	  socket.on('get.chat-messages', function(data){
 	  	chat.getChatMessages(socket, data);
 	  });

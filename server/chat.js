@@ -27,6 +27,8 @@ var chat = {
 					socket.userId = rows[0].user_id;
 					chat.addUserSocket(socket);
 					chat.joinSpacesRooms(socket);
+					// отправляем пользователю его id
+					socket.emit('user-id', {'id': socket.userId});
 					return;
 				}
 				console.log('invalid user session');
@@ -85,6 +87,7 @@ var chat = {
 			function(rows){
 				var room = chat.joinUserRoom(socket.userId, userId);
 				chat.sendMessage(room, socket.userId, rows);
+				chat.sentMessageStatus(socket, rows);
 			}
 		);
 	},
@@ -94,6 +97,7 @@ var chat = {
 			function(rows){
 				var room = chat.getSpaceRoom(spaceId);
 				chat.sendMessage(room, socket.userId, rows);
+				chat.sentMessageStatus(socket, rows);
 			}
 		);
 	},
@@ -107,15 +111,22 @@ var chat = {
 			}
 		);
 	},
+	sentMessageStatus: function(socket, message){
+		message = chat.prepareMessages(socket.userId, message);
+		socket.emit('message.status', {
+			id: message[0].object_id,
+			type: message[0].type,
+			text: message[0].text,
+			status: true
+		});
+	},
 	sendMessage: function(room, userId, messages){
 		messages = chat.prepareMessages(userId, messages);
-		//console.log('in_room', chat.io.sockets.adapter.rooms[room].length);
 		chat.io.to(room).emit('chat-messages', {items: messages, append: true});
 		console.log(room+' send message');
 	},
 	prepareMessages: function(userId, messages){
 		for (var key in messages) {
-			messages[key].my = (messages[key].user_id == userId);
 			messages[key].type = '';
 			switch(messages[key].object_model) {
 				case chat.objectModelUser:
@@ -140,14 +151,13 @@ var chat = {
 	},
 	chatsList: function(userId, callback){
 		db.query(
-			"SELECT u.id, 'user' as type, u.guid, CONCAT_WS(' ', p.firstname, p.lastname) as name, p.title "+
-				"FROM user u, profile p, chat_message cm "+
-				"WHERE u.id = p.user_id AND u.id = cm.object_id AND cm.user_id = ? AND cm.object_model = ? "+
-				"GROUP BY 1 "+
-				"UNION ALL SELECT s.id, 'space' as type, s.guid, s.name, s.description as title "+
-				"FROM space s, chat_message cm "+
-				"WHERE s.id = cm.object_id AND cm.user_id = ? AND cm.object_model = ? "+
-				"GROUP BY 1",
+			"SELECT u.id, cu.sort, 'user' as type, u.guid, CONCAT_WS(' ', p.firstname, p.lastname) as name, p.title, '' as color "+
+				"FROM user u, profile p, chat_user cu "+
+				"WHERE u.id = p.user_id AND u.id = cu.object_id AND cu.user_id = ? AND cu.object_model = ? "+
+				"UNION ALL SELECT s.id, cu.sort, 'space' as type, s.guid, s.name, s.description as title, s.color "+
+				"FROM space s, chat_user cu "+
+				"WHERE s.id = cu.object_id AND cu.user_id = ? AND cu.object_model = ? "+
+				"ORDER BY sort",
 			[userId, chat.objectModelUser, userId, chat.objectModelSpace],
 			function(err, rows, fields){
 				if (err) throw err;
@@ -160,6 +170,49 @@ var chat = {
 			console.log('user', socket.userId, 'send chat-list');
 			socket.emit('chat-list', items);
 		});
+	},
+	searchChat: function(socket, data){
+		var search = '%'+data.text.replace(/\s+/g, '%')+'%';
+		db.query(
+			"SELECT u.id, 'user' as type, u.guid, CONCAT_WS(' ', p.firstname, p.lastname) as name, p.title, '' as color "+
+				"FROM user u, profile p "+
+				"WHERE u.id = p.user_id AND CONCAT_WS(' ', p.firstname, p.lastname) LIKE ? "+
+				"UNION ALL SELECT s.id, 'space' as type, s.guid, s.name, s.description as title, s.color "+
+				"FROM space s "+
+				"WHERE s.name LIKE ? ",
+			[search, search],
+			function(err, rows, fields){
+				if (err) throw err;
+				socket.emit('search.chat', rows);
+				console.log('search chats');
+			});
+	},
+	addChat: function(socket, data){
+		db.query(
+			"SELECT MAX(sort) as sort FROM chat_user WHERE user_id = ?",
+			[socket.userId],
+			function(err, rows, fields){
+				if (err) throw err;
+				var sort = (typeof rows[0]['sort'] != 'undefined') ? Number(rows[0]['sort'])+1 : 0;
+				switch (data.type) {
+					case 'user':
+						data.type = chat.objectModelUser;
+						break;
+					case 'space':
+						data.type = chat.objectModelSpace;
+						break;
+				}
+				db.query(
+					'INSERT INTO chat_user (user_id, object_model, object_id, sort) VALUES (?, ?, ?, ?)',
+					[socket.userId, data.type, data.id, sort],
+				 	function(err, result){
+						if (err) throw err;
+						console.log('add chat');
+						//@todo Возможно стоит сделать отправку статуса
+					}
+				);
+			}
+		);
 	},
 	getChatMessages: function(socket, params){
 		chat.chatMessages(params.id, params.type, params.time, function(items){
