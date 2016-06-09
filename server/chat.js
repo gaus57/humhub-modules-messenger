@@ -126,18 +126,39 @@ var chat = {
 		console.log(room+' send message');
 	},
 	prepareMessages: function(userId, messages){
-		for (var key in messages) {
-			messages[key].type = '';
-			switch(messages[key].object_model) {
-				case chat.objectModelUser:
-					messages[key].type = 'user';
-					break;
-				case chat.objectModelSpace:
-					messages[key].type = 'space';
-					break;
-			}
+		return chat.replaceObjectType(messages, true);
+	},
+	prepareChatItems: function(items){
+		if (!Array.isArray(items)) {
+			items.online = chat.checkOnline(items.id, items.type);
+			return items;
 		}
-		return messages;
+		for (var key in items) {
+			items[key] = chat.prepareChatItems(items[key]);
+		}
+		return items;
+	},
+	checkOnline: function(id, type){
+		type = type || 'user';
+		if (type == 'user') {
+			var online = 0;
+			if (typeof usersSocket[id] != 'undefined') {
+				for (var key in usersSocket[id]) {
+					online++;
+				}
+			}
+			return !!online;
+		}
+		if (type == 'space') {
+			var usersOnline = typeof chat.io.sockets.adapter.rooms[chat.getSpaceRoom(id)] != 'undefined' ?
+				chat.io.sockets.adapter.rooms[chat.getSpaceRoom(id)]:
+				[];
+			var online = [];
+			for (var key in usersOnline) {
+				if (online.indexOf(usersOnline[key].userId) == -1) online.push(usersOnline[key].userId);
+			}
+			return online.length;
+		}
 	},
 	messageById: function(id, callback){
 		db.query(
@@ -151,13 +172,13 @@ var chat = {
 	},
 	chatsList: function(userId, callback){
 		db.query(
-			"SELECT u.id, cu.sort, 'user' as type, u.guid, CONCAT_WS(' ', p.firstname, p.lastname) as name, p.title, '' as color "+
+			"SELECT u.id, cu.id as user_chat_id, 'user' as type, u.guid, CONCAT_WS(' ', p.firstname, p.lastname) as name, p.title, '' as color "+
 				"FROM user u, profile p, chat_user cu "+
 				"WHERE u.id = p.user_id AND u.id = cu.object_id AND cu.user_id = ? AND cu.object_model = ? "+
-				"UNION ALL SELECT s.id, cu.sort, 'space' as type, s.guid, s.name, s.description as title, s.color "+
+				"UNION ALL SELECT s.id, cu.id as user_chat_id, 'space' as type, s.guid, s.name, s.description as title, s.color "+
 				"FROM space s, chat_user cu "+
-				"WHERE s.id = cu.object_id AND cu.user_id = ? AND cu.object_model = ? "+
-				"ORDER BY sort",
+				"WHERE s.id = cu.object_id AND cu.user_id = ? AND cu.object_model = ?"+
+				"ORDER BY user_chat_id",
 			[userId, chat.objectModelUser, userId, chat.objectModelSpace],
 			function(err, rows, fields){
 				if (err) throw err;
@@ -168,6 +189,7 @@ var chat = {
 	getChatList: function(socket, data){
 		chat.chatsList(socket.userId, function(items){
 			console.log('user', socket.userId, 'send chat-list');
+			items = chat.prepareChatItems(items);
 			socket.emit('chat-list', items);
 		});
 	},
@@ -183,36 +205,95 @@ var chat = {
 			[search, search],
 			function(err, rows, fields){
 				if (err) throw err;
+				rows = chat.prepareChatItems(rows);
 				socket.emit('search.chat', rows);
 				console.log('search chats');
 			});
 	},
 	addChat: function(socket, data){
+		data = chat.replaceType(data);
 		db.query(
-			"SELECT MAX(sort) as sort FROM chat_user WHERE user_id = ?",
-			[socket.userId],
-			function(err, rows, fields){
+			'INSERT INTO chat_user (user_id, object_model, object_id) VALUES (?, ?, ?)',
+			[socket.userId, data.objectModel, data.id],
+		 	function(err, result){
 				if (err) throw err;
-				var sort = (typeof rows[0]['sort'] != 'undefined') ? Number(rows[0]['sort'])+1 : 0;
-				switch (data.type) {
-					case 'user':
-						data.type = chat.objectModelUser;
-						break;
-					case 'space':
-						data.type = chat.objectModelSpace;
-						break;
-				}
-				db.query(
-					'INSERT INTO chat_user (user_id, object_model, object_id, sort) VALUES (?, ?, ?, ?)',
-					[socket.userId, data.type, data.id, sort],
-				 	function(err, result){
-						if (err) throw err;
-						console.log('add chat');
-						//@todo Возможно стоит сделать отправку статуса
-					}
-				);
+				console.log('add chat');
+				var res = chat.prepareChatItems({status: true, type: data.type, id: data.id});
+				socket.emit('add.chat-status', res);
 			}
 		);
+	},
+	deleteChat: function(socket, data){
+		data = chat.replaceType(data);
+		db.query(
+			'DELETE FROM chat_user WHERE user_id = ? AND object_model = ? AND object_id = ?',
+			[socket.userId, data.objectModel, data.id],
+		 	function(err, result){
+				if (err) throw err;
+				console.log('delete chat');
+			}
+		);
+	},
+	replaceType: function(items, remove){
+		remove = remove || false;
+		if (typeof items == 'string') {
+			switch (items) {
+				case 'user':
+					return chat.objectModelUser;
+					break;
+				case 'space':
+					return chat.objectModelSpace;
+					break;
+			}
+			return null;
+		}
+		if (!Array.isArray(items)) {
+			switch (items.type) {
+				case 'user':
+					items.objectModel = chat.objectModelUser;
+					break;
+				case 'space':
+					items.objectModel = chat.objectModelSpace;
+					break;
+			}
+			if (remove) delete items.type;
+			return items;
+		}
+		for (var key in items) {
+			items[key] = chat.replaceType(items[key]);
+		}
+		return items;
+	},
+	replaceObjectType: function(items, remove){
+		remove = remove || false;
+		if (typeof items == 'string') {
+			switch (items) {
+				case chat.objectModelUser:
+					return 'user';
+					break;
+				case chat.objectModelSpace:
+					return 'space';
+					break;
+			}
+			return null;
+		}
+		if (!Array.isArray(items)) {
+			switch (typeof items.objectModel != 'undefined' ? items.objectModel : items.object_model) {
+				case chat.objectModelUser:
+					items.type = 'user';
+					break;
+				case chat.objectModelSpace:
+					items.type = 'space';
+					break;
+			}
+			if (remove && items.objectModel) delete items.objectModel;
+			if (remove && items.object_model) delete items.object_model;
+			return items;
+		}
+		for (var key in items) {
+			items[key] = chat.replaceObjectType(items[key]);
+		}
+		return items;
 	},
 	getChatMessages: function(socket, params){
 		chat.chatMessages(params.id, params.type, params.time, function(items){
@@ -222,14 +303,7 @@ var chat = {
 		});
 	},
 	chatMessages: function(id, type, time, callback){
-		switch (type) {
-			case 'user':
-				type = chat.objectModelUser;
-				break;
-			case 'space':
-				type = chat.objectModelSpace;
-				break;
-		}
+		type = chat.replaceType(type);
 		db.query(
 			"SELECT cm.*, cmr.read_at FROM chat_message cm LEFT JOIN chat_message_read cmr ON cm.object_model = ? AND cm.object_id = cmr.user_id WHERE "+(type == chat.objectModelUser ? "cm.object_model = ? AND (cm.user_id = ? OR cm.object_id = ?) " : "cm.object_model = ? AND cm.object_id = ? ORDER BY cm.created_at"),
 			[chat.objectModelUser, type, id, id],

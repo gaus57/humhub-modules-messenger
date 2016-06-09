@@ -23,6 +23,10 @@ io.on('connection', function(socket){
 	  	chat.addChat(socket, data);
 	  });
 
+	  socket.on('delete.chat', function(data){
+	  	chat.deleteChat(socket, data);
+	  });
+
 	  socket.on('get.chat-messages', function(data){
 	  	chat.getChatMessages(socket, data);
 	  });

@@ -30,7 +30,6 @@ class m131023_165507_initial extends Migration
             'user_id' => 'int(11) NOT NULL',
             'object_id' => 'int(11) NOT NULL',
             'object_model' => 'varchar(255) NOT NULL DEFAULT \'\'',
-            'sort' => 'int(11) NOT NULL DEFAULT 0',
                 ), '');
     }
 

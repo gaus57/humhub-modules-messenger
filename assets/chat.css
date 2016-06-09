@@ -2,14 +2,20 @@
 	position: fixed;
 	bottom: 0;
 	right: 0;
-	border-radius: 3px;
 	z-index: 10;
+}
+#chat-list-items{
+	padding: 5px;
+	background: #7F9BAA;
+	border-radius: 5px 5px 0 0;
 }
 .chat-item{
 	position: relative;
 	cursor: pointer;
-	background: #7F9BAA;
-	padding: 5px;
+	margin-bottom: 5px;
+}
+.chat-item:last-child{
+	margin-bottom: 0;
 }
 .chat-item:first-child{
 	border-radius: 3px 3px 0 0;
@@ -24,6 +30,44 @@
 	text-align: center;
 	color: #fff;
 	font-weight: bold;
+}
+.chat-item-online{
+	display: block;
+	position: absolute;
+	bottom: 0;
+	right: 0;
+	width: 12px;
+	height: 12px;
+	border: 1px solid #fff;
+	background: #28D813;
+	border-radius: 50%;
+	line-height: 10px;
+	text-align: center;
+	font-size: 7px;
+	color: #fff;
+}
+.chat-item-online.ofline{
+	display: none;
+}
+.chat-item-close{
+	display: none;
+	position: absolute;
+	top: 0;
+	right: 0;
+	width: 13px;
+	height: 13px;
+	line-height: 13px;
+	text-align: center;
+	background: rgba(0,0,0,.7);
+	border-radius: 2px;
+	color: #fff;
+	font-size: 9px;
+}
+.chat-item-close:hover{
+	background: rgba(0,0,0,.9);
+}
+.chat-item:hover .chat-item-close{
+	display: block;
 }
 .chat-item-title{
 	display: none;
@@ -94,7 +138,50 @@
 	position: absolute;
 	bottom: 100%;
 	left: 0;
-	max-width: 250px;
+	width: 250px;
+	background: #F7F7F7;
+	max-height: 200px;
+	overflow-y: auto
+}
+.chat-search-result::after{
+	content: '';
+	display: block;
+	clear: both;
+}
+.chat-search-empty{
+	margin: 2px;
+	border-left: 2px solid orange;
+	padding: 0 5px;
+	height: 28px;
+	line-height: 28px;
+	font-size: 13px;
+	color: #777;
+	background: rgba(100,100,100,.1);
+}
+.chat-search-item{
+	margin: 2px;
+	border-left: 2px solid #aaa;
+	padding: 2px 0;
+	overflow: hidden;
+	color: #777;
+	white-space: nowrap;
+	background: rgba(100,100,100,.1);
+	cursor: pointer;
+}
+.chat-search-item .chat-item-icon{
+	margin: 0 5px;
+	float: left;
+	width: 28px;
+	height: 28px;
+	line-height: 28px;
+	font-size: 13px;
+}
+.chat-search-item-name {
+	font-size: 12px;
+}
+.chat-search-item-description{
+	font-size: 9px;
+	font-style: italic;
 }
 .chat-search-field input{
 	display: block;
@@ -104,7 +191,6 @@
 	padding: 0 10px;
 	border: none;
 	box-sizing: border-box;
-}
 }
 .chat-search-field input:focus{
 	outline: none;
