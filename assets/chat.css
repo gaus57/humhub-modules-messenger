@@ -49,6 +49,22 @@
 .chat-item-online.ofline{
 	display: none;
 }
+.chat-notread-info{
+	display: block;
+	position: absolute;
+	bottom: 1px;
+	left: 1px;
+	width: 12px;
+	height: 12px;
+	padding: 0 2px;
+	background: red;
+	border-radius: 4px;
+	line-height: 12px;
+	text-align: center;
+	font-size: 10px;
+	font-weight: bold;
+	color: #fff;
+}
 .chat-item-close{
 	display: none;
 	position: absolute;

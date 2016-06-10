@@ -23,6 +23,9 @@ function Chat(serverUrl){
 			that.chatList(data);
 			console.log('chat list', data);
 		})
+		.on('notread-messages', function(data){
+			that.addNotReadMessages(data);
+		})
 		.on('message.status', function(data){
 			console.log('send message status', data);
 			if (data.status) {
@@ -42,6 +45,12 @@ function Chat(serverUrl){
 				that.addChatItem(data.type, data.id);
 				console.log('add chat', data);
 			}
+		})
+		.on('chat.ofline', function(data){
+			that.chatOfline(data.type, data.id);
+		})
+		.on('chat.online', function(data){
+			that.chatOnline(data.type, data.id);
 		});
 
 	// Регистрируем обработчики событий интерфейса
@@ -135,8 +144,33 @@ function Chat(serverUrl){
 	// Список чатов
 	this.chatItem = {};
 	// Список не прочитанных сообщений
-	//this.notReadMessanges = [];
+	this.notReadMessages = {};
 
+	this.addNotReadMessages = function(items){
+		for (var key in items) {
+			var chatKey = items[key].type == 'user' ?
+				items[key].type+'-'+items[key].user_id :
+				items[key].type+'-'+items[key].object_id;
+			if (!that.notReadMessages[chatKey]) {
+				that.notReadMessages[chatKey] = [];
+			}
+			that.notReadMessages[chatKey][items[key].id] = items[key];
+		}
+		that.renderNotReadMessages();
+		console.log('not read messages', items);
+	};
+	this.renderNotReadMessages = function(){
+		$('.chat-notread-info').remove();
+		for (var key in that.notReadMessages) {
+			var chatMsgs = that.notReadMessages[key];
+			var keyArr = key.split('-');
+			var count = 0;
+			for (var n in chatMsgs) { count++; }
+			var $item = that.$chatItem(keyArr[0], keyArr[1]);
+			if (!$item.length) continue;
+			$item.append('<span class="chat-notread-info">'+count+'</span>');
+		}
+	};
 	// Выводит список чатов
 	this.chatList = function(items){
 		if (!that.$chatList().length) {
@@ -165,6 +199,7 @@ function Chat(serverUrl){
 				'</div>');
 		}
 		that.userIconDefault();
+		this.renderNotReadMessages();
 	};
 	this.cacheChatItem = function(items){
 		if (!Array.isArray(items)) {
@@ -240,6 +275,7 @@ function Chat(serverUrl){
 	this.chatMessages = function(messages, append){
 		append = typeof append == 'undefined' ? true : append;
 		var chats = {};
+		var notRead = [];
 		for (var key in messages) {
 			messages[key].my = (messages[key].user_id == that.userId);
 			var chatId = 'chat-'+messages[key].type+'-';
@@ -255,6 +291,8 @@ function Chat(serverUrl){
 				'<div class="chat-message">'+
 					that.renderMessageText(messages[key].text)+
 				'</div>');
+			// если не прочитано добавляем в список непрочитанных
+			if (!messages[key].my && !messages[key].read_at) notRead.push(messages[key]);
 		}
 		for (var key in chats) {
 			if (append) {
@@ -263,8 +301,23 @@ function Chat(serverUrl){
 				$('#'+key+' .chat-messages').prepend(chats[key]);
 			}
 		}
+		if (notRead.lenght) this.addNotReadMessages(notRead);
 	};
 	this.renderMessageText = function(text){
 		return text.replace(/(\r\n|\r|\n)/g, '<br>');
+	};
+	this.chatOflineTimer = {};
+	this.chatOfline = function(type, id){
+		var item = that.$chatItem(type, id);
+		if (!item.length) return;
+		that.chatOflineTimer[type+id] = setTimeout(function(){
+			item.find('.chat-item-online').addClass('ofline');
+		}, 2000);
+	};
+	this.chatOnline = function(type, id){
+		if (that.chatOflineTimer[type+id]) clearTimeout(that.chatOflineTimer[type+id]);
+		var item = that.$chatItem(type, id);
+		if (!item.length) return;
+		item.find('.chat-item-online').removeClass('ofline');
 	};
 }

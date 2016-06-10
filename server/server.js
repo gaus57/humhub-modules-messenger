@@ -15,6 +15,10 @@ io.on('connection', function(socket){
 	  	chat.getChatList(socket, data);
 	  });
 
+	  socket.on('get.notread-messages', function(data){
+	  	chat.getNotReadMessages(socket, data);
+	  });
+
 	  socket.on('search.chat', function(data){
 	  	chat.searchChat(socket, data);
 	  });

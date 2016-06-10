@@ -29,6 +29,8 @@ var chat = {
 					chat.joinSpacesRooms(socket);
 					// отправляем пользователю его id
 					socket.emit('user-id', {'id': socket.userId});
+					//send online status
+					socket.broadcast.emit('chat.online', {type: 'user', id: socket.userId});
 					return;
 				}
 				console.log('invalid user session');
@@ -45,6 +47,7 @@ var chat = {
 	},
 	removeUserSocket: function(socket){
 		delete usersSocket[socket.userId][socket.id];
+		socket.broadcast.emit('chat.ofline', {type: 'user', id: socket.userId});
 	},
 	getUserRoom: function(users){
 		return 'user_'+users.sort().join('_');
@@ -54,10 +57,13 @@ var chat = {
 	},
 	joinSpacesRooms: function(socket){
 		chat.userSpacesIds(socket.userId, function(rows){
+			var ids = [];
 			for (var key in rows) {
 				socket.join(chat.getSpaceRoom(rows[key].id));
+				ids.push(rows[key].id);
 			}
-		})
+			chat.getNotReadMessages(socket, ids);
+		});
 	},
 	joinUserRoom: function(user1, user2){
 		var room = chat.getUserRoom([user1, user2]);
@@ -149,13 +155,17 @@ var chat = {
 			}
 			return !!online;
 		}
+		//@todo Решить вопрос с подсчетом онлайн пространства
+		return false;
+
 		if (type == 'space') {
-			var usersOnline = typeof chat.io.sockets.adapter.rooms[chat.getSpaceRoom(id)] != 'undefined' ?
-				chat.io.sockets.adapter.rooms[chat.getSpaceRoom(id)]:
-				[];
+			var usersOnline = typeof chat.io.sockets.adapter.rooms[chat.getSpaceRoom(id)];
+			console.log(usersOnline);
 			var online = [];
+			if (!usersOnline) return 0;
 			for (var key in usersOnline) {
-				if (online.indexOf(usersOnline[key].userId) == -1) online.push(usersOnline[key].userId);
+				var client = chat.io.sockets.adapter.nsp.connected[key];
+				if (online.indexOf(client.userId) == -1) online.push(client.userId);
 			}
 			return online.length;
 		}
@@ -192,6 +202,25 @@ var chat = {
 			items = chat.prepareChatItems(items);
 			socket.emit('chat-list', items);
 		});
+	},
+	getNotReadMessages: function(socket, spaceIds){
+		chat.notReadMessages(socket.userId, spaceIds, function(items){
+			items = chat.replaceObjectType(items, true);
+			socket.emit('notread-messages', items);
+		});
+	},
+	notReadMessages: function(userId, spaceIds, callback){
+		db.query(
+			"SELECT cm.* FROM chat_message cm LEFT JOIN chat_message_read cmr ON cm.id = cmr.chat_message_id "+
+				"WHERE cmr.read_at IS NULL AND "+
+				"(cm.object_id = ? AND cm.object_model = ?) OR "+
+				"(cm.object_id IN(?) AND cm.object_model = ? AND cm.user_id != ?)",
+			[userId, chat.objectModelUser, spaceIds, chat.objectModelSpace, userId],
+			function(err, rows, fields){
+				if (err) throw err;
+				callback(rows);
+			}
+		);
 	},
 	searchChat: function(socket, data){
 		var search = '%'+data.text.replace(/\s+/g, '%')+'%';
