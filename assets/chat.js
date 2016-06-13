@@ -51,6 +51,9 @@ function Chat(serverUrl){
 		})
 		.on('chat.online', function(data){
 			that.chatOnline(data.type, data.id);
+		})
+		.on('messages.read', function(data){
+			that.readMessages(data);
 		});
 
 	// Регистрируем обработчики событий интерфейса
@@ -127,6 +130,10 @@ function Chat(serverUrl){
 			that.socket.emit('delete.chat', {type: $item.data('type'), id: $item.data('id')});
 			that.$chatWindow($item.data('type'), $item.data('id')).remove();
 			$item.remove();
+		})
+		.on('focus', '.chat-send', function(){
+			var $this = $(this);
+			that.readChatMessages($this.data('type'), $this.data('id'));
 		});
 
 	this.searchTimeOut;
@@ -167,9 +174,28 @@ function Chat(serverUrl){
 			var count = 0;
 			for (var n in chatMsgs) { count++; }
 			var $item = that.$chatItem(keyArr[0], keyArr[1]);
-			if (!$item.length) continue;
+			if (!$item.length || !n) continue;
 			$item.append('<span class="chat-notread-info">'+count+'</span>');
 		}
+	};
+	this.readChatMessages = function(type, id){
+		if (!that.notReadMessages[type+'-'+id]) return;
+		var items = [];
+		for (key in that.notReadMessages[type+'-'+id]) {
+			var msg = that.notReadMessages[type+'-'+id][key];
+			items.push({id: msg.id, type: msg.type, object_id: msg.object_id, user_id: msg.user_id});
+			delete that.notReadMessages[type+'-'+id][key];
+		}
+		that.socket.emit('messages.read', items);
+		that.$chatWindow(type, id).find('.chat-message-notread').removeClass('chat-message-notread');
+		that.renderNotReadMessages();
+		console.log('read', items);
+	};
+	this.readMessages = function(items){
+		for (var key in items) {
+			$('#chat-message-'+items[key].id).removeClass('chat-message-notread');
+		}
+		console.log('read messages', items);
 	};
 	// Выводит список чатов
 	this.chatList = function(items){
@@ -266,7 +292,7 @@ function Chat(serverUrl){
 				'<div class="chat-head">'+item.name+'</div>'+
 				'<div class="chat-content">'+
 					'<div class="chat-messages"></div>'+
-					'<div class="chat-field"><textarea data-type="'+type+'" data-id="'+id+'"></textarea></div>'+
+					'<div class="chat-field"><textarea class="chat-send" data-type="'+type+'" data-id="'+id+'"></textarea></div>'+
 				'</div>'+
 			'</div>');
 		that.socket.emit('get.chat-messages', {id: id, type: type});
@@ -287,7 +313,7 @@ function Chat(serverUrl){
 			if (typeof chats[chatId] == 'undefined') {
 				chats[chatId] = [];
 			}
-			chats[chatId].push('<div id="chat-message-'+messages[key].id+'" class="chat-message-wrap'+(messages[key].my ? ' chat-message-my' : '')+(!messages[key].read_at ? ' chat-message-notread' : '')+'" data-id="'+messages[key].id+'">'+
+			chats[chatId].push('<div id="chat-message-'+messages[key].id+'" class="chat-message-wrap'+(messages[key].my ? ' chat-message-my' : '')+((!messages[key].read_at && messages[key].my) ? ' chat-message-notread' : '')+'" data-id="'+messages[key].id+'">'+
 				'<div class="chat-message">'+
 					that.renderMessageText(messages[key].text)+
 				'</div>');
@@ -301,7 +327,8 @@ function Chat(serverUrl){
 				$('#'+key+' .chat-messages').prepend(chats[key]);
 			}
 		}
-		if (notRead.lenght) this.addNotReadMessages(notRead);
+		console.log(notRead.length, notRead);
+		if (notRead.length) this.addNotReadMessages(notRead);
 	};
 	this.renderMessageText = function(text){
 		return text.replace(/(\r\n|\r|\n)/g, '<br>');

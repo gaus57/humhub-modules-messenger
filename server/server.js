@@ -43,6 +43,10 @@ io.on('connection', function(socket){
 	  	chat.spaceSay(socket, data.id, data.text);
 	  });
 
+	  socket.on('messages.read', function(data){
+	  	chat.readMessages(socket, data);
+	  });
+
 	  socket.on('disconnect', function(){
 	  	chat.removeUserSocket(socket);
 	  });

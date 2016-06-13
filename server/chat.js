@@ -172,7 +172,7 @@ var chat = {
 	},
 	messageById: function(id, callback){
 		db.query(
-			"SELECT cm.*, cmr.read_at FROM chat_message cm LEFT JOIN chat_message_read cmr ON cm.object_model = ? AND cm.object_id = cmr.user_id WHERE cm.id = ?",
+			"SELECT cm.*, cmr.read_at FROM chat_message cm LEFT JOIN chat_message_read cmr ON cm.object_model = ? AND cm.object_id = cmr.user_id AND cm.id = cmr.chat_message_id WHERE cm.id = ?",
 			[chat.objectModelUser, id],
 			function(err, rows, fields){
 				if (err) throw err;
@@ -334,13 +334,43 @@ var chat = {
 	chatMessages: function(id, type, time, callback){
 		type = chat.replaceType(type);
 		db.query(
-			"SELECT cm.*, cmr.read_at FROM chat_message cm LEFT JOIN chat_message_read cmr ON cm.object_model = ? AND cm.object_id = cmr.user_id WHERE "+(type == chat.objectModelUser ? "cm.object_model = ? AND (cm.user_id = ? OR cm.object_id = ?) " : "cm.object_model = ? AND cm.object_id = ? ORDER BY cm.created_at"),
+			"SELECT cm.*, cmr.read_at FROM chat_message cm LEFT JOIN chat_message_read cmr ON cm.object_model = ? AND cm.object_id = cmr.user_id AND cm.id = cmr.chat_message_id WHERE "+(type == chat.objectModelUser ? "cm.object_model = ? AND (cm.user_id = ? OR cm.object_id = ?) " : "cm.object_model = ? AND cm.object_id = ? ORDER BY cm.created_at"),
 			[chat.objectModelUser, type, id, id],
 			function(err, rows, fields){
 				if (err) throw err;
 				callback(rows);
 			}
 		);
+	},
+	readMessages: function(socket, items){
+		var insert = [];
+		var sayRead = [];
+		for (var key in items) {
+			insert.push('('+db.escape(items[key].id)+', '+db.escape(socket.userId)+', NOW())');
+			if (items[key].type == 'user') {
+				if (!sayRead[items[key].user_id]) sayRead[items[key].user_id] = [];
+				sayRead[items[key].user_id].push(items[key]);
+			}
+		}
+		if (!insert.length) return;
+		db.query("INSERT IGNORE INTO chat_message_read (chat_message_id, user_id, read_at) VALUES "+insert.join(', '),
+			function(err, result){
+				if (err) throw err;
+				for (var key in sayRead) {
+					chat.emitToUser(key, function(userSocket){
+						userSocket.emit('messages.read', sayRead[key]);
+					});
+				}
+				console.log('read messages');
+			}
+		);
+	},
+	emitToUser: function(id, callback){
+		if (!usersSocket[id]) return false;
+		for (var key in usersSocket[id]) {
+			callback(usersSocket[id][key]);
+		}
+		return true;
 	},
 };
 
