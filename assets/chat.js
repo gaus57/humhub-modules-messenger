@@ -20,8 +20,8 @@ function Chat(serverUrl){
 		})
 		.on('chat-list', function(data){
 			that.cacheChatItem(data);
-			that.chatList(data);
 			console.log('chat list', data);
+			that.chatList(data);
 		})
 		.on('notread-messages', function(data){
 			that.addNotReadMessages(data);
@@ -34,16 +34,16 @@ function Chat(serverUrl){
 		})
 		.on('search.chat', function(data){
 			that.cacheChatItem(data);
-			that.searchResult(data);
 			console.log('search result', data);
+			that.searchResult(data);
 		})
 		.on('user-id', function(data){
 			that.userId = data.id;
 		})
 		.on('add.chat-status', function(data){
 			if (data.status) {
-				that.addChatItem(data.type, data.id);
 				console.log('add chat', data);
+				that.addChatItem(data.type, data.id);
 			}
 		})
 		.on('chat.ofline', function(data){
@@ -58,12 +58,11 @@ function Chat(serverUrl){
 
 	// Регистрируем обработчики событий интерфейса
 	$(document)
-		.on('click', '.chat-item', function(e){
+		.on('click', '.chat-item, .chat-notread-item', function(e){
 			var $this = $(this);
 			that.openChatWindow($this.data('type'), $this.data('id'));
 		})
 		.on('keydown', '.chat-field textarea', function(e){
-			console.log('click');
 			if (e.keyCode == 13) {
 		        if (e.ctrlKey) {
 		            var val = this.value;
@@ -99,6 +98,10 @@ function Chat(serverUrl){
 		    if (!container.is(e.target) && container.has(e.target).length === 0) {
 		        $(".chat-search-field").hide();
 		    }
+		    var container = $(".chat-notread-icon");
+		    if (!container.is(e.target) && container.has(e.target).length === 0) {
+		        $(".chat-notread-items").hide();
+		    }
 		})
 		.on('click', '.chat-search-icon', function(){
 			var search = $(this).siblings('.chat-search-field');
@@ -115,8 +118,8 @@ function Chat(serverUrl){
 				return;
 			}
 			that.searchTimeOut = setTimeout(function(){
-				that.socket.emit('search.chat', {text: text});
 				console.log('search chats', text);
+				that.socket.emit('search.chat', {text: text});
 			}, 500);
 		})
 		.on('click', '.chat-search-item', function(e){
@@ -134,6 +137,13 @@ function Chat(serverUrl){
 		.on('focus', '.chat-send', function(){
 			var $this = $(this);
 			that.readChatMessages($this.data('type'), $this.data('id'));
+		})
+		.on('click', '.chat-notread-icon', function(){
+			$('.chat-notread-items').toggle();
+		})
+		.on('wheel', '#chat-list-items', function(e){
+			e.preventDefault();
+			that.scrollChatList(e.originalEvent.deltaY);
 		});
 
 	this.searchTimeOut;
@@ -153,6 +163,29 @@ function Chat(serverUrl){
 	// Список не прочитанных сообщений
 	this.notReadMessages = {};
 
+	this.scrollChatList = function(scroll){
+		var $this = that.$chatList();
+		var $parent = $this.parent();
+		var margin = Number($this.css('margin-top').replace('px', ''));
+		var blockHeight = $parent.outerHeight();
+		var contentHeight = $this.outerHeight();
+		if (contentHeight <= blockHeight) return;
+		var newMargin = margin - scroll;
+		if (newMargin-blockHeight < -contentHeight) newMargin = -(contentHeight-blockHeight);
+		if (newMargin > 0) newMargin = 0;
+		$this.css('margin-top', newMargin+'px');
+		if (newMargin < 0) {
+			$('.chat-items-contener').addClass('chat-scroll-top');
+		} else {
+			$('.chat-items-contener').removeClass('chat-scroll-top');
+		}
+		if (newMargin-blockHeight > -contentHeight) {
+			$('.chat-items-contener').addClass('chat-scroll-bottom');
+		} else {
+			$('.chat-items-contener').removeClass('chat-scroll-bottom');
+		}
+		console.log(blockHeight, contentHeight, margin, newMargin);
+	};
 	this.addNotReadMessages = function(items){
 		for (var key in items) {
 			var chatKey = items[key].type == 'user' ?
@@ -168,14 +201,47 @@ function Chat(serverUrl){
 	};
 	this.renderNotReadMessages = function(){
 		$('.chat-notread-info').remove();
+		var countAll = 0;
 		for (var key in that.notReadMessages) {
 			var chatMsgs = that.notReadMessages[key];
 			var keyArr = key.split('-');
 			var count = 0;
-			for (var n in chatMsgs) { count++; }
+			for (var n in chatMsgs) {
+				count++;
+				countAll++;
+				if (count > 1) continue;
+				if (chatMsgs[n].type == 'user') {
+					if ($('.chat-notread-item[data-type='+chatMsgs[n].type+'][data-id='+chatMsgs[n].user.id+']').length) continue;
+					$('.chat-notread-items').append('<div class="chat-notread-item" data-id="'+chatMsgs[n].user.id+'" data-type="'+chatMsgs[n].type+'">'+
+							'<img class="chat-item-icon" src="/uploads/profile_image/'+chatMsgs[n].user.guid+'.jpg">'+
+							(chatMsgs[n].user.online ?
+								'<span class="chat-item-online"></span>' :
+								'<span class="chat-item-online ofline"></span>'
+							)+
+							'<div class="chat-item-title"><b class="chat-item-name">'+chatMsgs[n].user.name+'</b><i class="chat-item-description">'+chatMsgs[n].user.title+'</i></div>'+
+						'</div>');
+				} else {
+					if ($('.chat-notread-item[data-type='+chatMsgs[n].type+'][data-id='+chatMsgs[n].object.id+']').length) continue;
+					$('.chat-notread-items').append('<div class="chat-notread-item" data-id="'+chatMsgs[n].object.id+'" data-type="'+chatMsgs[n].type+'">'+
+							'<img class="chat-item-icon" src="/uploads/profile_image/'+chatMsgs[n].object.guid+'.jpg">'+
+							(chatMsgs[n].object.online ?
+								'<span class="chat-item-online">'+chatMsgs[n].object.online+'</span>' :
+								'<span class="chat-item-online ofline"></span>'
+							)+
+							'<div class="chat-item-title"><b class="chat-item-name">'+chatMsgs[n].object.name+'</b><i class="chat-item-description">'+chatMsgs[n].object.title+'</i></div>'+
+						'</div>');
+				}
+			}
 			var $item = that.$chatItem(keyArr[0], keyArr[1]);
 			if (!$item.length || !n) continue;
 			$item.append('<span class="chat-notread-info">'+count+'</span>');
+		}
+		if (countAll) {
+			that.userIconDefault();
+			$('#chat-notread .chat-notread-count').text(countAll);
+			$('#chat-notread').show();
+		} else {
+			$('#chat-notread').hide();
 		}
 	};
 	this.readChatMessages = function(type, id){
@@ -201,14 +267,21 @@ function Chat(serverUrl){
 	this.chatList = function(items){
 		if (!that.$chatList().length) {
 			$('body').append('<div id="chat-list">'+
+					'<div id="chat-notread">'+
+						'<div class="chat-notread-icon"><i class="fa fa-envelope"></i><span class="chat-notread-count"></span></div>'+
+						'<div class="chat-notread-items"></div>'+
+					'</div>'+
 					'<div class="chat-search">'+
 						'<div class="chat-search-icon"><i class="fa fa-search"></i></div>'+
 						'<div class="chat-search-field"><input type="text"><div class="chat-search-result"></div></div>'+
 					'</div>'+
-					'<div id="chat-list-items"></div>'+
+					'<div class="chat-items-contener"><div id="chat-list-items"></div></div>'+
 				'</div>');
 		};		
-		if (items) that.chatItems(items);
+		if (items.length) {
+			that.$chatList().show();
+			that.chatItems(items);
+		}
 	};
 	this.chatItems = function(items){
 		var chatList = that.$chatList();
@@ -225,7 +298,8 @@ function Chat(serverUrl){
 				'</div>');
 		}
 		that.userIconDefault();
-		this.renderNotReadMessages();
+		that.renderNotReadMessages();
+		that.scrollChatList(0);
 	};
 	this.cacheChatItem = function(items){
 		if (!Array.isArray(items)) {
@@ -239,7 +313,6 @@ function Chat(serverUrl){
 	this.addChatItem = function(type, id){
 		if (that.$chatItem(type, id).length) return;
 		that.chatItems([that.getChatItem(type, id)]);
-		
 	}
 	this.getChatItem = function(type, id){
 		return (typeof that.chatItem[type+id] != 'undefined') ? that.chatItem[type+id] : false;
@@ -278,17 +351,16 @@ function Chat(serverUrl){
 	// Открывает окно чата
 	this.openChatWindow = function(type, id){
 		var $chatWindow = that.$chatWindow(type, id);
-		if ($chatWindow.length) {
-			$chatWindow.show();
-			return;
+		if (!$chatWindow.length) {
+			that.chatWindow(type, id);
 		}
-		that.chatWindow(type, id);
+		$chatWindow.show();
 		that.$chatWindow(type, id).find('textarea').focus();
 	};
 	// Выводит окно чата
 	this.chatWindow = function(type, id){
 		var item = that.getChatItem(type, id);
-		$('body').append('<div id="chat-'+type+'-'+id+'" class="chat-window">'+
+		$('body').append('<div id="chat-'+type+'-'+id+'" class="chat-window chat-'+type+'">'+
 				'<div class="chat-head">'+item.name+'</div>'+
 				'<div class="chat-content">'+
 					'<div class="chat-messages"></div>'+
@@ -302,6 +374,7 @@ function Chat(serverUrl){
 		append = typeof append == 'undefined' ? true : append;
 		var chats = {};
 		var notRead = [];
+		var now = new Date;
 		for (var key in messages) {
 			messages[key].my = (messages[key].user_id == that.userId);
 			var chatId = 'chat-'+messages[key].type+'-';
@@ -313,10 +386,24 @@ function Chat(serverUrl){
 			if (typeof chats[chatId] == 'undefined') {
 				chats[chatId] = [];
 			}
-			chats[chatId].push('<div id="chat-message-'+messages[key].id+'" class="chat-message-wrap'+(messages[key].my ? ' chat-message-my' : '')+((!messages[key].read_at && messages[key].my) ? ' chat-message-notread' : '')+'" data-id="'+messages[key].id+'">'+
-				'<div class="chat-message">'+
-					that.renderMessageText(messages[key].text)+
-				'</div>');
+			if (messages[key].type == 'user') {
+				var msgBlock = '<div id="chat-message-'+messages[key].id+'" class="chat-message-wrap'+(messages[key].my ? ' chat-message-my' : '')+((!messages[key].read_at && messages[key].my && messages[key].type == 'user') ? ' chat-message-notread' : '')+'" data-id="'+messages[key].id+'">'+
+						'<img class="chat-item-icon" src="/uploads/profile_image/'+messages[key].user.guid+'.jpg">'+
+						'<div class="chat-message">'+
+							'<span class="chat-msg-text">'+that.renderMessageText(messages[key].text)+'</span>'+
+							'<span class="chat-msg-time">'+that.dateFormat(messages[key].created_at)+'</span>'+
+						'</div>'+
+					'</div>';
+			} else {
+				var msgBlock = '<div id="chat-message-'+messages[key].id+'" class="chat-message-wrap'+(messages[key].my ? ' chat-message-my' : '')+((!messages[key].read_at && messages[key].my && messages[key].type == 'user') ? ' chat-message-notread' : '')+'" data-id="'+messages[key].id+'">'+
+						'<img class="chat-item-icon" src="/uploads/profile_image/'+messages[key].user.guid+'.jpg">'+
+						'<div class="chat-message">'+
+							'<span class="chat-msg-text">'+that.renderMessageText(messages[key].text)+'</span>'+
+							'<span class="chat-msg-time">'+that.dateFormat(messages[key].created_at)+'</span>'+
+						'</div>'+
+					'</div>';
+			}
+			chats[chatId].push(msgBlock);
 			// если не прочитано добавляем в список непрочитанных
 			if (!messages[key].my && !messages[key].read_at) notRead.push(messages[key]);
 		}
@@ -327,6 +414,7 @@ function Chat(serverUrl){
 				$('#'+key+' .chat-messages').prepend(chats[key]);
 			}
 		}
+		that.userIconDefault();
 		console.log(notRead.length, notRead);
 		if (notRead.length) this.addNotReadMessages(notRead);
 	};
@@ -346,5 +434,22 @@ function Chat(serverUrl){
 		var item = that.$chatItem(type, id);
 		if (!item.length) return;
 		item.find('.chat-item-online').removeClass('ofline');
+	};
+	this.dateFormat = function(dateString){
+		var date = new Date(dateString);
+		var now = new Date();
+		var dateResult = '';
+		if (now.getDate()+'.'+now.getMonth()+'.'+now.getFullYear() == date.getDate()+'.'+date.getMonth()+'.'+date.getFullYear()) {
+			dateResult += date.getHours() >= 10 ? date.getHours() : '0'+date.getHours();
+			dateResult += ':';
+			dateResult += date.getMinutes() >= 10 ? date.getMinutes() : '0'+date.getMinutes();
+		} else {
+			dateResult += date.getDate() >= 10 ? date.getDate() : '0'+date.getDate();
+			dateResult += '.';
+			dateResult += date.getMonth() >= 10 ? date.getMonth() : '0'+date.getMonth();
+			dateResult += '.';
+			dateResult += (date.getFullYear()+'').substr(2);
+		}
+		return dateResult;
 	};
 }
