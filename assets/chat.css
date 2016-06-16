@@ -90,7 +90,7 @@
 	position: absolute;
 	bottom: 1px;
 	left: 1px;
-	width: 12px;
+	/*width: 12px;*/
 	height: 12px;
 	padding: 0 2px;
 	background: red;
@@ -123,16 +123,20 @@
 }
 .chat-item-title{
 	display: none;
-	position: absolute;
+	position: fixed;
 	padding: 2px 7px;
-	top: 0;
+	margin-top: -40px;
 	right: 55px;
-	height: 100%;
+	height: 40px;
 	border-radius: 5px;
 	background: #7F9BAA;
 	box-shadow: 0 1px 3px rgba(0,0,0,.5);
 	color: #fff;
 	text-align: right;
+	z-index: 20;
+}
+.chat-item-title.active{
+	display: block;
 }
 .chat-item-title::after{
 	content: '';
@@ -181,7 +185,6 @@
 	position: absolute;
 	bottom: 2px;
 	left: 7px;
-	width: 12px;
 	height: 12px;
 	padding: 0 2px;
 	background: red;
@@ -314,6 +317,7 @@
 	color: #fff;
 	font-size: 14px;
 	white-space: nowrap;
+	text-overflow: ellipsis;
 	overflow: hidden;
 }
 .chat-content{

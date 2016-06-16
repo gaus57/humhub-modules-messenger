@@ -19,7 +19,7 @@ var chat = {
 	init: function(io){
 		this.io = io;
 		chat.loadChatItems();
-		setInterval(chat.loadChatItems, 1000*60*5);
+		setInterval(chat.loadChatItems, 1000*60*1);
 	},
 	loadChatItems: function(){
 		db.query(
@@ -115,8 +115,8 @@ var chat = {
 			{userId: socket.userId, objectModel: chat.objectModelUser, objectId: userId, text: message},
 			function(rows){
 				var room = chat.joinUserRoom(socket.userId, userId);
-				chat.sendMessage(room, socket.userId, rows);
-				chat.sentMessageStatus(socket, rows);
+				chat.sendMessage(room, socket.userId, {type: 'user', items: rows, append: true});
+				chat.sendMessageStatus(socket, rows);
 			}
 		);
 	},
@@ -125,22 +125,32 @@ var chat = {
 			{userId: socket.userId, objectModel: chat.objectModelSpace, objectId: spaceId, text: message},
 			function(rows){
 				var room = chat.getSpaceRoom(spaceId);
-				chat.sendMessage(room, socket.userId, rows);
-				chat.sentMessageStatus(socket, rows);
+				chat.sendMessage(room, socket.userId, {type: 'space', id: spaceId, items: rows, append: true});
+				chat.sendMessageStatus(socket, rows);
 			}
 		);
 	},
 	inserMessage: function(data, callback){
 		db.query(
 			'INSERT INTO chat_message (user_id, object_model, object_id, text, created_at) VALUES (?, ?, ?, ?, NOW())',
-			[data.userId, data.objectModel, data.objectId, data.text],
+			[data.userId, data.objectModel, data.objectId, chat.escapeHtml(data.text)],
 		 	function(err, result){
 				if (err) throw err;
 				chat.messageById(result.insertId, callback);
 			}
 		);
 	},
-	sentMessageStatus: function(socket, message){
+	escapeHtml: function(text) {
+	  var map = {
+	    '&': '&amp;',
+	    '<': '&lt;',
+	    '>': '&gt;',
+	    '"': '&quot;',
+	    "'": '&#039;'
+	  };
+	  return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+	},
+	sendMessageStatus: function(socket, message){
 		message = chat.prepareMessages(socket.userId, message);
 		socket.emit('message.status', {
 			id: message[0].object_id,
@@ -149,9 +159,9 @@ var chat = {
 			status: true
 		});
 	},
-	sendMessage: function(room, userId, messages){
-		messages = chat.prepareMessages(userId, messages);
-		chat.io.to(room).emit('chat-messages', {items: messages, append: true});
+	sendMessage: function(room, userId, data){
+		data.items = chat.prepareMessages(userId, data.items);
+		chat.io.to(room).emit('chat-messages', data);
 		console.log(room+' send message');
 	},
 	prepareMessages: function(userId, messages){
@@ -210,17 +220,19 @@ var chat = {
 	},
 	chatsList: function(userId, callback){
 		db.query(
-			"SELECT u.id, cu.id as user_chat_id, 'user' as type, u.guid, CONCAT_WS(' ', p.firstname, p.lastname) as name, p.title, '' as color "+
-				"FROM user u, profile p, chat_user cu "+
-				"WHERE u.id = p.user_id AND u.id = cu.object_id AND cu.user_id = ? AND cu.object_model = ? "+
-				"UNION ALL SELECT s.id, cu.id as user_chat_id, 'space' as type, s.guid, s.name, s.description as title, s.color "+
-				"FROM space s, chat_user cu "+
-				"WHERE s.id = cu.object_id AND cu.user_id = ? AND cu.object_model = ?"+
-				"ORDER BY user_chat_id",
-			[userId, chat.objectModelUser, userId, chat.objectModelSpace],
+			"SELECT object_id, object_model "+
+				"FROM chat_user "+
+				"WHERE user_id = ? "+
+				"ORDER BY id",
+			[userId],
 			function(err, rows, fields){
 				if (err) throw err;
-				callback(rows);
+				rows = chat.replaceObjectType(rows);
+				var items = [];
+				for (var n in rows) {
+					items.push(chat.getChatItem(rows[n].type, rows[n].object_id));
+				}
+				callback(items);
 			}
 		);
 	},
@@ -228,13 +240,13 @@ var chat = {
 		chat.chatsList(socket.userId, function(items){
 			console.log('user', socket.userId, 'send chat-list');
 			items = chat.prepareChatItems(items);
-			socket.emit('chat-list', items);
+			socket.emit('chat-list', {items: items});
 		});
 	},
 	getNotReadMessages: function(socket, spaceIds){
 		chat.notReadMessages(socket.userId, spaceIds, function(items){
 			items = chat.prepareMessages(socket.userId, items);
-			socket.emit('notread-messages', items);
+			socket.emit('notread-messages', {items: items});
 		});
 	},
 	notReadMessages: function(userId, spaceIds, callback){
@@ -267,13 +279,13 @@ var chat = {
 				"FROM user u, profile p "+
 				"WHERE u.id = p.user_id AND CONCAT_WS(' ', p.firstname, p.lastname) LIKE ? "+
 				"UNION ALL SELECT s.id, 'space' as type, s.guid, s.name, s.description as title, s.color "+
-				"FROM space s "+
-				"WHERE s.name LIKE ? ",
-			[search, search],
+				"FROM space s, space_membership sm "+
+				"WHERE sm.space_id = s.id AND sm.status = 3 AND sm.user_id = ? AND s.name LIKE ? ",
+			[search, socket.userId, search],
 			function(err, rows, fields){
 				if (err) throw err;
 				rows = chat.prepareChatItems(rows);
-				socket.emit('search.chat', rows);
+				socket.emit('search.chat', {items: rows});
 				console.log('search chats');
 			});
 	},
@@ -363,35 +375,39 @@ var chat = {
 		return items;
 	},
 	getChatMessages: function(socket, params){
-		chat.chatMessages(params.id, params.type, params.time, function(items){
+		chat.chatMessages(socket.userId, params.type, params.id, params.last, function(items){
 			items = chat.prepareMessages(socket.userId, items);
 			console.log('chat messages ', params.type, params.id);
-			socket.emit('chat-messages', {items: items, append: true});
+			socket.emit('chat-messages', {type: params.type, id: params.id, items: items, append: !params.last, end: (items.length < 30)});
 		});
 	},
-	chatMessages: function(id, type, time, callback){
+	chatMessages: function(user_id, type, id, last, callback){
 		type = chat.replaceType(type);
 		if (type == chat.objectModelUser) {
 			db.query(
 				"SELECT cm.*, cmr.read_at FROM chat_message cm "+
 					"LEFT JOIN chat_message_read cmr ON cm.id = cmr.chat_message_id AND cm.object_id = cmr.user_id "+
-					"WHERE cm.object_model = ? AND (cm.user_id = ? OR cm.object_id = ?) "+
-					"ORDER BY cm.created_at",
-				[type, id, id],
+					"WHERE cm.object_model = ? AND ((cm.user_id = ? AND cm.object_id = ?) OR (cm.user_id = ? AND cm.object_id = ?)) "+
+					(last ? "AND cm.id < "+db.escape(last)+' ' : '')+
+					"ORDER BY cm.id DESC "+
+					"LIMIT 30",
+				[type, user_id, id, id, user_id],
 				function(err, rows, fields){
 					if (err) throw err;
-					callback(rows);
+					callback(rows.reverse());
 				}
 			);
 		} else {
 			db.query(
 				"SELECT cm.*, 1 as read_at FROM chat_message cm "+
 					"WHERE cm.object_model = ? AND cm.object_id = ? "+
-					"ORDER BY cm.created_at",
+					(last ? "AND cm.id < "+db.escape(last)+' ' : '')+
+					"ORDER BY cm.id DESC "+
+					"LIMIT 30",
 				[type, id],
 				function(err, rows, fields){
 					if (err) throw err;
-					callback(rows);
+					callback(rows.reverse());
 				}
 			);
 		}
@@ -412,7 +428,7 @@ var chat = {
 				if (err) throw err;
 				for (var key in sayRead) {
 					chat.emitToUser(key, function(userSocket){
-						userSocket.emit('messages.read', sayRead[key]);
+						userSocket.emit('messages.read', {items: sayRead[key]});
 					});
 				}
 				console.log('read messages');
