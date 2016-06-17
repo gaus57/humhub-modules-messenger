@@ -1,6 +1,7 @@
 var server = require('http').createServer();
 var io = require('socket.io')(server);
 
+var config = require('./config');
 var chat = require('./chat');
 chat.init(io);
 
@@ -56,5 +57,5 @@ io.on('connection', function(socket){
 	}
 });
 
-server.listen(3000);
-console.log('server is started');
+server.listen(config.port);
+console.log('server is started. listen port '+config.port);

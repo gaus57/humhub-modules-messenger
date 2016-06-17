@@ -1,0 +1,10 @@
+var config ={
+	'port': '@|port|@',
+
+	// Настройки MySql
+	'dbHost': '@|db_host|@',
+	'dbUser': '@|db_username|@',
+	'dbPass': '@|db_password|@',
+	'dbDatabase': '@|db_name|@',
+}
+module.exports = config;

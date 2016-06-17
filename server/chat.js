@@ -1,12 +1,13 @@
+var config = require('./config');
 var cookie = require('cookie');
 
 var mysql = require('mysql');
 var db = mysql.createPool({
 	//connectionLimit : 10,
-  host     : 'localhost',
-  user     : 'root',
-  password : '',
-  database : 'humhub'
+  host     : config.dbHost,
+  user     : config.dbUser,
+  password : config.dbPass,
+  database : config.dbDatabase,
 });
 
 var usersSocket = [];
@@ -277,11 +278,11 @@ var chat = {
 		db.query(
 			"SELECT u.id, 'user' as type, u.guid, CONCAT_WS(' ', p.firstname, p.lastname) as name, p.title, '' as color "+
 				"FROM user u, profile p "+
-				"WHERE u.id = p.user_id AND CONCAT_WS(' ', p.firstname, p.lastname) LIKE ? "+
+				"WHERE u.id = p.user_id AND u.id != ? AND CONCAT_WS(' ', p.firstname, p.lastname) LIKE ? "+
 				"UNION ALL SELECT s.id, 'space' as type, s.guid, s.name, s.description as title, s.color "+
 				"FROM space s, space_membership sm "+
 				"WHERE sm.space_id = s.id AND sm.status = 3 AND sm.user_id = ? AND s.name LIKE ? ",
-			[search, socket.userId, search],
+			[socket.userId, search, socket.userId, search],
 			function(err, rows, fields){
 				if (err) throw err;
 				rows = chat.prepareChatItems(rows);

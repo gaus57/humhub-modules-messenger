@@ -13,14 +13,13 @@ class Assets extends AssetBundle
     ];
     public $js = [
         'chat.js',
-        //'http://127.0.0.1:3000/socket.io/socket.io.js',
     ];
 
     public function init()
     {
-        $this->js[] = Yii::$app->request->hostInfo.':3000/socket.io/socket.io.js';
+        $params = require(__DIR__.'/params.php');
+        $this->js[] = Yii::$app->request->hostInfo.':'.$params['node_server_port'].'/socket.io/socket.io.js';
         $this->sourcePath = dirname(__FILE__) . '/assets';
         parent::init();
     }
-
 }

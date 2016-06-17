@@ -410,12 +410,13 @@
 }
 .chat-field{
 	height: 15%;
-	padding-top: 3px;
+	padding: 5px 0;
 	box-sizing: border-box;
 }
 .chat-field textarea{
 	width: 100%;
 	height: 100%;
+	border: none;
 }
 .chat-field textarea:focus{
 	outline: none;

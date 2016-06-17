@@ -1,9 +1,3 @@
-var chat;
-
-$(function(){
-	chat = new Chat(document.location.origin+':3000');
-});
-
 // Конструктор объекта чата
 function Chat(serverUrl){
 	var that = this;
@@ -192,7 +186,8 @@ function Chat(serverUrl){
 	this.addNewMessages = function(count){
 		if (!that.pageFocus && count) {
 			that.newMessages += count;
-			$('title').text('Сообщений '+that.newMessages+'. '+that.pageTitle);
+			$('title').text(that.newMessages+' сообщений! '+that.pageTitle);
+			window.focus();
 		}
 	};
 	this.loadChatMessages = function(type, id){
@@ -237,10 +232,11 @@ function Chat(serverUrl){
 				that.notReadMessages[chatKey] = [];
 			}
 			that.notReadMessages[chatKey][items[key].id] = items[key];
+			that.cacheChatItem([items[key].user, items[key].object]);
 		}
+		console.log('not read messages', items);
 		that.renderNotReadMessages();
 		that.addNewMessages(items.length);
-		console.log('not read messages', items);
 	};
 	this.renderNotReadMessages = function(){
 		$('.chat-notread-info').remove();
@@ -258,7 +254,6 @@ function Chat(serverUrl){
 			}
 			if (!count) continue;
 			if (msg.type == 'user') {
-				if ($('.chat-notread-item[data-type='+msg.type+'][data-id='+msg.user.id+']').length) continue;
 				$('.chat-notread-items').append('<div class="chat-notread-item" data-id="'+msg.user.id+'" data-type="'+msg.type+'">'+
 						'<img class="chat-item-icon" src="/uploads/profile_image/'+msg.user.guid+'.jpg">'+
 						(msg.user.online ?
@@ -269,7 +264,6 @@ function Chat(serverUrl){
 						'<div class="chat-item-title"><b class="chat-item-name">'+msg.user.name+'</b><i class="chat-item-description">'+msg.user.title+'</i></div>'+
 					'</div>');
 			} else {
-				if ($('.chat-notread-item[data-type='+msg.type+'][data-id='+msg.object.id+']').length) continue;
 				$('.chat-notread-items').append('<div class="chat-notread-item" data-id="'+msg.object.id+'" data-type="'+msg.type+'">'+
 						'<img class="chat-item-icon" src="/uploads/profile_image/'+msg.object.guid+'.jpg">'+
 						(msg.object.online ?
@@ -288,6 +282,7 @@ function Chat(serverUrl){
 			that.userIconDefault();
 			$('#chat-notread .chat-notread-count').text(countAll);
 			$('#chat-notread').show();
+			console.log('not read exixt', countAll);
 		} else {
 			$('#chat-notread').hide();
 		}
@@ -327,9 +322,9 @@ function Chat(serverUrl){
 				'</div>');
 		};		
 		if (items.length) {
-			that.$chatList().show();
 			that.chatItems(items);
 		}
+		that.renderNotReadMessages();
 	};
 	this.chatItems = function(items){
 		var chatList = that.$chatList();
@@ -345,8 +340,8 @@ function Chat(serverUrl){
 					'<div class="chat-item-title"><b class="chat-item-name">'+items[key].name+'</b><i class="chat-item-description">'+items[key].title+'</i></div>'+
 				'</div>');
 		}
+		that.$chatList().show();
 		that.userIconDefault();
-		that.renderNotReadMessages();
 		that.scrollChatList(0);
 	};
 	this.cacheChatItem = function(items){
