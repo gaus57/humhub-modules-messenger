@@ -3,3 +3,4 @@
 .gitmodules
 /composer.lock
 server/config.js
+params.php
