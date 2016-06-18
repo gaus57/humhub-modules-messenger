@@ -231,8 +231,9 @@ function Chat(serverUrl){
 			if (!that.notReadMessages[chatKey]) {
 				that.notReadMessages[chatKey] = [];
 			}
-			that.notReadMessages[chatKey][items[key].id] = items[key];
 			that.cacheChatItem([items[key].user, items[key].object]);
+			if (that.notReadMessages[chatKey][items[key].id]) continue;
+			that.notReadMessages[chatKey][items[key].id] = items[key];
 		}
 		console.log('not read messages', items);
 		that.renderNotReadMessages();
@@ -248,6 +249,7 @@ function Chat(serverUrl){
 			var count = 0;
 			var msg;
 			for (var n in chatMsgs) {
+				if (chatMsgs[n].read_at) continue;
 				msg = chatMsgs[n];
 				count++;
 				countAll++;				
@@ -293,7 +295,7 @@ function Chat(serverUrl){
 		for (key in that.notReadMessages[type+'-'+id]) {
 			var msg = that.notReadMessages[type+'-'+id][key];
 			items.push({id: msg.id, type: msg.type, object_id: msg.object_id, user_id: msg.user_id});
-			delete that.notReadMessages[type+'-'+id][key];
+			that.notReadMessages[type+'-'+id][key].read_at = true;
 		}
 		that.socket.emit('messages.read', items);
 		that.$chatWindow(type, id).find('.chat-message-notread').removeClass('chat-message-notread');
@@ -466,6 +468,10 @@ function Chat(serverUrl){
 		}
 	};
 	this.renderMessageText = function(text){
+		text = text.replace(
+			/((http|ftp|https):\/\/[\w-]+(\.[\w-]+)+([\w.,@?^=%&amp;:\/~+#-]*[\w@?^=%&amp;\/~+#-])?)/g,
+			"<a target='_blank' href='$1'>$1</a>"
+		);
 		return text.replace(/(\r\n|\r|\n)/g, '<br>');
 	};
 	this.chatOflineTimer = {};
