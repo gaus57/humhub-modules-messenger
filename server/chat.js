@@ -56,7 +56,7 @@ var chat = {
 					socket.broadcast.emit('chat.online', {type: 'user', id: socket.userId});
 					return;
 				}
-				console.log('invalid user session');
+				//console.log('invalid user session');
 			});
 		}
 	},
@@ -66,7 +66,7 @@ var chat = {
 		}
 		usersSocket[socket.userId][socket.id] = socket;
 		var n = 0; for (var key in usersSocket[socket.userId]) { n++; }
-		console.log('user '+socket.userId+' has '+n+' sockets');
+		//console.log('user '+socket.userId+' has '+n+' sockets');
 	},
 	removeUserSocket: function(socket){
 		delete usersSocket[socket.userId][socket.id];
@@ -83,7 +83,7 @@ var chat = {
 			var ids = [];
 			for (var key in rows) {
 				socket.join(chat.getSpaceRoom(rows[key].id));
-				console.log('user', socket.userId, 'join room', chat.getSpaceRoom(rows[key].id));
+				//console.log('user', socket.userId, 'join room', chat.getSpaceRoom(rows[key].id));
 				ids.push(rows[key].id);
 			}
 			chat.getNotReadMessages(socket, ids);
@@ -93,11 +93,11 @@ var chat = {
 		var room = chat.getUserRoom([user1, user2]);
 		for (var key in usersSocket[user1]) {
 			usersSocket[user1][key].join(room);
-			console.log('user '+user1+' join to room '+room);
+			//console.log('user '+user1+' join to room '+room);
 		}
 		for (var key in usersSocket[user2]) {
 			usersSocket[user2][key].join(room);
-			console.log('user '+user2+' join to room '+room);
+			//console.log('user '+user2+' join to room '+room);
 		}
 		return room;
 	},
@@ -163,7 +163,7 @@ var chat = {
 	sendMessage: function(room, userId, data){
 		data.items = chat.prepareMessages(userId, data.items);
 		chat.io.to(room).emit('chat-messages', data);
-		console.log(room+' send message');
+		//console.log(room+' send message');
 	},
 	prepareMessages: function(userId, messages){
 		messages = chat.replaceObjectType(messages, true);
@@ -199,7 +199,7 @@ var chat = {
 
 		if (type == 'space') {
 			var usersOnline = typeof chat.io.sockets.adapter.rooms[chat.getSpaceRoom(id)];
-			console.log(usersOnline);
+			//console.log(usersOnline);
 			var online = [];
 			if (!usersOnline) return 0;
 			for (var key in usersOnline) {
@@ -239,7 +239,7 @@ var chat = {
 	},
 	getChatList: function(socket, data){
 		chat.chatsList(socket.userId, function(items){
-			console.log('user', socket.userId, 'send chat-list');
+			//console.log('user', socket.userId, 'send chat-list');
 			items = chat.prepareChatItems(items);
 			socket.emit('chat-list', {items: items});
 		});
@@ -287,7 +287,7 @@ var chat = {
 				if (err) throw err;
 				rows = chat.prepareChatItems(rows);
 				socket.emit('search.chat', {items: rows});
-				console.log('search chats');
+				//console.log('search chats');
 			});
 	},
 	addChat: function(socket, data){
@@ -297,7 +297,7 @@ var chat = {
 			[socket.userId, data.objectModel, data.id],
 		 	function(err, result){
 				if (err) throw err;
-				console.log('add chat');
+				//console.log('add chat');
 				var res = chat.prepareChatItems({status: true, type: data.type, id: data.id});
 				socket.emit('add.chat-status', res);
 			}
@@ -310,7 +310,7 @@ var chat = {
 			[socket.userId, data.objectModel, data.id],
 		 	function(err, result){
 				if (err) throw err;
-				console.log('delete chat');
+				//console.log('delete chat');
 			}
 		);
 	},
@@ -378,7 +378,7 @@ var chat = {
 	getChatMessages: function(socket, params){
 		chat.chatMessages(socket.userId, params.type, params.id, params.last, function(items){
 			items = chat.prepareMessages(socket.userId, items);
-			console.log('chat messages ', params.type, params.id);
+			//console.log('chat messages ', params.type, params.id);
 			socket.emit('chat-messages', {type: params.type, id: params.id, items: items, append: !params.last, end: (items.length < 30)});
 		});
 	},
@@ -432,7 +432,7 @@ var chat = {
 						userSocket.emit('messages.read', {items: sayRead[key]});
 					});
 				}
-				console.log('read messages');
+				//console.log('read messages');
 			}
 		);
 	},

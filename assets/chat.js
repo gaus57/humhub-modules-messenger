@@ -12,26 +12,26 @@ function Chat(serverUrl){
 
 	// Регистрируем слушатели socket.io
 	that.socket.on('chat-messages', function(data){
-			console.log('message', data);
+			//console.log('message', data);
 			that.chatMessages(data.type, data.id, data.items, data.append, data.end);
 		})
 		.on('chat-list', function(data){
 			that.cacheChatItem(data.items);
-			console.log('chat list', data);
+			//console.log('chat list', data);
 			that.chatList(data.items);
 		})
 		.on('notread-messages', function(data){
 			that.addNotReadMessages(data.items);
 		})
 		.on('message.status', function(data){
-			console.log('send message status', data);
+			//console.log('send message status', data);
 			if (data.status) {
 				that.$chatWindow(data.type, data.id).find('textarea').val('');
 			}
 		})
 		.on('search.chat', function(data){
 			that.cacheChatItem(data.items);
-			console.log('search result', data);
+			//console.log('search result', data);
 			that.searchResult(data.items);
 		})
 		.on('user-id', function(data){
@@ -39,7 +39,7 @@ function Chat(serverUrl){
 		})
 		.on('add.chat-status', function(data){
 			if (data.status) {
-				console.log('add chat', data);
+				//console.log('add chat', data);
 				that.addChatItem(data.type, data.id);
 			}
 		})
@@ -80,7 +80,7 @@ function Chat(serverUrl){
 					var id = $this.data('id');
 					var text = $this.val();
 					if (!text) { return; }
-					console.log('send message');
+					//console.log('send message');
 					that.socket.emit(type+'.message', {id: id, text: text});
 			    }
 		        return false;
@@ -100,6 +100,9 @@ function Chat(serverUrl){
 		        $(".chat-notread-items").hide();
 		    }
 		})
+		.on('click', '.chat-window-close', function(e){
+			$(this).closest('.chat-window').hide();
+		})
 		.on('click', '.chat-search-icon', function(){
 			var search = $(this).siblings('.chat-search-field');
 			search.toggle();
@@ -115,7 +118,7 @@ function Chat(serverUrl){
 				return;
 			}
 			that.searchTimeOut = setTimeout(function(){
-				console.log('search chats', text);
+				//console.log('search chats', text);
 				that.socket.emit('search.chat', {text: text});
 			}, 500);
 		})
@@ -145,19 +148,19 @@ function Chat(serverUrl){
 		.on('wheel', '.chat-messages', function(e){
 			var $win = $(this).closest('.chat-window');
 			if (e.currentTarget.scrollTop <= 200) that.loadChatMessages($win.data('type'), $win.data('id'));
-		});
-	$(window)
-		.on('blur', function(){
-			console.log('page blur');
-			that.pageFocus = false;
 		})
-		.on('focus', function(){
-			console.log('page focus');
+		.on('mousemove', function(){
+			//console.log('page focus');
 			that.pageFocus = true;
 			if (that.newMessages) {
 				that.newMessages = 0;
 				$('title').text(that.pageTitle);
 			}
+		});
+	$(window)
+		.on('blur', function(){
+			//console.log('page blur');
+			that.pageFocus = false;
 		});
 
 	this.searchTimeOut;
@@ -186,7 +189,7 @@ function Chat(serverUrl){
 	this.addNewMessages = function(count){
 		if (!that.pageFocus && count) {
 			that.newMessages += count;
-			$('title').text(that.newMessages+' сообщений! '+that.pageTitle);
+			$('title').text(that.newMessages+' новых сообщений! '+that.pageTitle);
 			window.focus();
 		}
 	};
@@ -197,7 +200,7 @@ function Chat(serverUrl){
 		if (that.chatWindows[type+'-'+id].messages.length) {
 			last = that.chatWindows[type+'-'+id].messages[0].id;
 		}
-		console.log('get load msgs', last);
+		//console.log('get load msgs', last);
 		that.socket.emit('get.chat-messages', {id: id, type: type, last: last});
 	};
 	this.scrollChatList = function(scroll){
@@ -221,7 +224,7 @@ function Chat(serverUrl){
 		} else {
 			$('.chat-items-contener').removeClass('chat-scroll-bottom');
 		}
-		console.log(blockHeight, contentHeight, margin, newMargin);
+		//console.log(blockHeight, contentHeight, margin, newMargin);
 	};
 	this.addNotReadMessages = function(items){
 		for (var key in items) {
@@ -235,7 +238,7 @@ function Chat(serverUrl){
 			if (that.notReadMessages[chatKey][items[key].id]) continue;
 			that.notReadMessages[chatKey][items[key].id] = items[key];
 		}
-		console.log('not read messages', items);
+		//console.log('not read messages', items);
 		that.renderNotReadMessages();
 		that.addNewMessages(items.length);
 	};
@@ -284,7 +287,7 @@ function Chat(serverUrl){
 			that.userIconDefault();
 			$('#chat-notread .chat-notread-count').text(countAll);
 			$('#chat-notread').show();
-			console.log('not read exixt', countAll);
+			//console.log('not read exixt', countAll);
 		} else {
 			$('#chat-notread').hide();
 		}
@@ -300,13 +303,13 @@ function Chat(serverUrl){
 		that.socket.emit('messages.read', items);
 		that.$chatWindow(type, id).find('.chat-message-notread').removeClass('chat-message-notread');
 		that.renderNotReadMessages();
-		console.log('read', items);
+		//console.log('read', items);
 	};
 	this.readMessages = function(items){
 		for (var key in items) {
 			$('#chat-message-'+items[key].id).removeClass('chat-message-notread');
 		}
-		console.log('read messages', items);
+		//console.log('read messages', items);
 	};
 	// Выводит список чатов
 	this.chatList = function(items){
@@ -365,7 +368,7 @@ function Chat(serverUrl){
 	this.userIconDefault = function(){
 		$('.chat-item-icon').bind('error', function(){
 			var $item = $(this).closest('[data-type][data-id]');
-			if ($item.data('type') == 'space') {
+			if (!$item.hasClass('chat-window') && $item.data('type') == 'space') {
 				var item = that.getChatItem($item.data('type'), $item.data('id'));
 				var arr = item.name.split(/\s+/);
 				$(this).replaceWith('<div class="chat-item-icon" style="background-color: '+item.color+';">'+
@@ -374,7 +377,7 @@ function Chat(serverUrl){
 			} else {
 				this.src = '/img/chat_default_user.jpg';
 			}
-			console.log('no chat icon');
+			//console.log('no chat icon');
 		});
 	};
 	this.searchResult = function(items){
@@ -408,7 +411,7 @@ function Chat(serverUrl){
 	this.renderChatWindow = function(type, id){
 		var item = that.getChatItem(type, id);
 		$('body').append('<div id="chat-'+type+'-'+id+'" class="chat-window chat-'+type+'" data-type="'+type+'" data-id="'+id+'">'+
-				'<div class="chat-head">'+item.name+'</div>'+
+				'<div class="chat-head"><span class="chat-win-ttl">'+item.name+'</span><span class="chat-window-close"><i class="fa fa-close"></i></span></div>'+
 				'<div class="chat-content">'+
 					'<div class="chat-messages"></div>'+
 					'<div class="chat-field"><textarea class="chat-send" data-type="'+type+'" data-id="'+id+'"></textarea></div>'+
@@ -444,11 +447,11 @@ function Chat(serverUrl){
 					'</div>';
 			}
 		}
-		console.log(notRead.length, notRead);
+		//console.log(notRead.length, notRead);
 		if (notRead.length) this.addNotReadMessages(notRead);
 
 		var $chatMessags = that.$chatWindow(type, id).find('.chat-messages');
-		console.log($chatMessags);
+		//console.log($chatMessags);
 		if (that.chatWindows[type+'-'+id]) {
 			if (append) {
 				that.chatWindows[type+'-'+id].messages = that.chatWindows[type+'-'+id].messages.concat(messages);
@@ -458,7 +461,7 @@ function Chat(serverUrl){
 				var scrollBottom = $chatMessags[0].scrollHeight - $chatMessags[0].scrollTop;
 				$chatMessags.prepend(html);
 				$chatMessags.scrollTop($chatMessags[0].scrollHeight - scrollBottom);
-				console.log('scroll ', $chatMessags[0].scrollHeight, scrollBottom);
+				//console.log('scroll ', $chatMessags[0].scrollHeight, scrollBottom);
 			}
 			that.userIconDefault();
 			if (isEnd != 'undefined') {

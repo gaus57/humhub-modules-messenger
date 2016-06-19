@@ -3,9 +3,9 @@
     "name": "Chat",
     "description": "Приватный чат для общения пользователей и пространств.",
     "keywords": ["chat", "messaging", "communication"],
-    "version": "0.0.0",
+    "version": "0.1.0",
     "humhub": {
         "minVersion": "1.0"
     },
-    "screenshots": ["assets/screen1.jpg"]
+    "screenshots": ["assets/chat-scrin-1.jpg"]
 }
