@@ -2,7 +2,12 @@
 function Chat(serverUrl){
 	var that = this;
 
-	this.socket = io(serverUrl);
+	try {
+		this.socket = io(serverUrl);
+	} catch (err) {
+		console.log('chat server is not started');
+		return;
+	}
 
 	this.pageTitle = $('title').text();
 	this.newMessages = 0;
@@ -51,6 +56,12 @@ function Chat(serverUrl){
 		})
 		.on('messages.read', function(data){
 			that.readMessages(data.items);
+		})
+		.on('disconnect', function(){
+			console.log('chat server is disconnected');
+		})
+		.on('connection', function(){
+			
 		});
 
 	// Регистрируем обработчики событий интерфейса

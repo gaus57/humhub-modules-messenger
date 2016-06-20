@@ -13,7 +13,7 @@ class m131023_165507_initial extends Migration
             'object_id' => 'int(11) NOT NULL',
             'text' => 'text NOT NULL',
             'created_at' => 'datetime NOT NULL',
-                ), '');
+                ), ['']);
 
         $this->createTable('chat_message_read', array(
             'chat_message_id' => 'int(11) NOT NULL',
