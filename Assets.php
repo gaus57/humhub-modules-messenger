@@ -17,9 +17,9 @@ class Assets extends AssetBundle
 
     public function init()
     {
-        $params = require(__DIR__.'/params.php');
-        $this->js[] = Yii::$app->request->hostInfo.':'.$params['node_server_port'].'/socket.io/socket.io.js';
-        $this->sourcePath = dirname(__FILE__) . '/assets';
+        $params = require(__DIR__ . '/params.php');
+        $this->js[] = Yii::$app->request->hostInfo . ':' . $params['node_server_port'] . '/socket.io/socket.io.js';
+        $this->sourcePath = __DIR__ . '/assets';
         parent::init();
     }
 }
