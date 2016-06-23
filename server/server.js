@@ -6,7 +6,7 @@ var chat = require('./chat');
 chat.init(io);
 
 io.on('connection', function(socket){
-	console.log('a user connected');
+	//console.log('a user connected');
 	
 	try {
 		// авторизуем пользователя через сессию

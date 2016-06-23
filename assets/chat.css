@@ -168,6 +168,10 @@
 	position: relative;
 	display: none;
 }
+#chat-notread.show,
+#chat-notread.show-items{
+	display: block;
+}
 .chat-notread-icon{
 	width: 40px;
 	height: 40px;
@@ -198,23 +202,62 @@
 .chat-notread-items{
 	display: none;
 	position: absolute;
-	right: 50px;
-	top: 0;
+	width: 280px;
+	max-height: 350px;
+	right: 55px;
+	bottom: -45px;
 	border-radius: 5px;
-	overflow: hidden;
+	overflow-y: auto;
 	background: #7F9BAA;
-	padding: 5px;
-	/*padding-bottom: 0;*/
-	white-space: nowrap;
+	box-shadow: 0 0 3px rgba(0,0,0,.7);
+}
+.chat-notread-items.bottom{
+	top: -45px;
+	bottom: initial;
+}
+.show-items .chat-notread-items{
+	display: block;
 }
 .chat-notread-item{
-	display: inline-block;
-	cursor: pointer;
-	margin-right: 5px;
-	vertical-align: top;
+	position: relative;
+    padding: 3px 0;
+    padding-right: 35px;
+    color: #fff;
+    background: rgba(100,100,100,.1);
+    box-sizing: border-box;
 }
-.chat-notread-item:last-child{
-	margin-right: 0;
+.chat-notread-item .chat-item-icon{
+	margin: 0 5px;
+    float: left;
+    width: 28px;
+    height: 28px;
+    line-height: 28px;
+    font-size: 13px;
+}
+.chat-notread-item .chat-add{
+	position: absolute;
+    top: 4px;
+    right: 4px;
+}
+.chat-notread-item .chat-item-name{
+	font-size: 12px;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+}
+.chat-notread-item .chat-item-description{
+	font-size: 9px;
+    font-style: italic;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+}
+.chat-notread-messages{
+	padding: 3px;
+	padding-left: 35px;
+	padding-bottom: 10px;
+	font-size: 11px;
+    color: #000;
 }
 #chat-server-status{
 	display: none;
@@ -229,50 +272,11 @@
 	font-size: 18px;
 	color: orange;
 }
-#chat-server-status.chat-connection-off,
-#chat-server-status.chat-connection-off .chat-server-status-icon{
+.chat-connection-off .chat-server-status-icon{
 	color: #e42121;
 }
-#chat-server-status.chat-connection-on,
-#chat-server-status.chat-connection-on .chat-server-status-icon{
+.chat-connection-on .chat-server-status-icon{
 	color: #1ab11a;
-}
-.chat-server-notice{
-	display: none;
-	position: fixed;
-	padding: 2px 7px;
-	margin-top: -40px;
-	right: 55px;
-	height: 40px;
-	line-height: 40px;
-	border-radius: 5px;
-	background: #F7F7F7;
-	box-shadow: 0 1px 3px rgba(0,0,0,.5);
-	text-align: right;
-	font-size: 13px;
-	font-weight: bold;
-	z-index: 20;
-}
-.chat-server-notice::after{
-	content: '';
-	display: block;
-	position: absolute;
-	top: 50%;
-	right: -6px;
-	margin-top: -6px;
-	border-left: 6px solid #F7F7F7;
-	border-right: none;
-	border-top: 6px solid transparent;
-	border-bottom: 6px solid transparent;
-}
-.chat-server-notice.show{
-	display: block;
-}
-#chat-server-status:hover .chat-server-notice{
-	display: block;
-}
-.chat-server-notice.hide{
-	display: none !important;
 }
 .chat-search{
 	position: relative;
@@ -306,8 +310,12 @@
 	left: 0;
 	width: 250px;
 	background: #F7F7F7;
-	max-height: 200px;
+	max-height: 210px;
 	overflow-y: auto
+}
+.chat-search-result.bottom{
+	bottom: initial;
+	top: 100%;
 }
 .chat-search-result::after{
 	content: '';
@@ -325,14 +333,16 @@
 	background: rgba(100,100,100,.1);
 }
 .chat-search-item{
+	position: relative;
 	margin: 2px;
-	border-left: 2px solid #aaa;
+	border-left: 3px solid #7F9BAA;
 	padding: 2px 0;
+	padding-right: 30px;
 	overflow: hidden;
 	color: #777;
 	white-space: nowrap;
 	background: rgba(100,100,100,.1);
-	cursor: pointer;
+	box-sizing: border-box;
 }
 .chat-search-item .chat-item-icon{
 	margin: 0 5px;
@@ -342,12 +352,38 @@
 	line-height: 28px;
 	font-size: 13px;
 }
+.chat-search-item .chat-item-online{
+	left: 25px;
+	bottom: 2px;
+	right: initial;
+}
 .chat-search-item-name {
 	font-size: 12px;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+	overflow: hidden;
 }
 .chat-search-item-description{
 	font-size: 9px;
 	font-style: italic;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+	overflow: hidden;
+}
+.chat-add{
+	background: #1ab11a;
+	width: 26px;
+	height: 26px;
+	line-height: 26px;
+	text-align: center;
+	font-size: 16px;
+	color: #fff;
+	cursor: pointer;
+}
+.chat-search-item .chat-add{
+	position: absolute;
+	top: 3px;
+	right: 3px;
 }
 .chat-search-field input{
 	display: block;

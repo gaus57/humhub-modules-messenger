@@ -14,8 +14,8 @@ var usersSocket = [];
 var chatItems = {};
 
 var chat = {
-	objectModelUser: 'humhub\\modules\\user\models\\User',
-	objectModelSpace: 'humhub\\modules\\user\models\\Space',
+	objectModelUser: 'humhub\\modules\\user\\models\\User',
+	objectModelSpace: 'humhub\\modules\\user\\models\\Space',
 	io: null,
 	init: function(io){
 		this.io = io;

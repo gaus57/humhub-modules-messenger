@@ -59,16 +59,16 @@ function Chat(serverUrl){
 		})
 		.on('disconnect', function(){
 			console.log('chat server is disconnected');
-			that.changeConnectionStatus(false, 'Соединение с сервером разорвано!');
+			that.changeConnectionStatus(false);
 		})
 		.on('connect', function(){
 			console.log('connected to chat server');
-			that.changeConnectionStatus(true, 'Соединение с сервером востановлено.');
+			that.changeConnectionStatus(true);
 		});
 
 	// Регистрируем обработчики событий интерфейса
 	$(document)
-		.on('click', '.chat-item, .chat-notread-item', function(e){
+		.on('click', '.chat-item', function(e){
 			var $this = $(this);
 			that.openChatWindow($this.data('type'), $this.data('id'));
 		})
@@ -106,13 +106,11 @@ function Chat(serverUrl){
 		    }
 		    var container = $(".chat-search");
 		    if (!container.is(e.target) && container.has(e.target).length === 0) {
-		        $(".chat-search-field").hide();
-		        $(".chat-search-field input").val('');
-		        $('.chat-search-result').html('');
+		        that.searchResultHide();
 		    }
-		    var container = $(".chat-notread-icon");
+		    var container = $("#chat-notread");
 		    if (!container.is(e.target) && container.has(e.target).length === 0) {
-		        $(".chat-notread-items").hide();
+		        that.hideNotReadMessages();
 		    }
 		})
 		.on('click', '.chat-window-close', function(e){
@@ -123,6 +121,8 @@ function Chat(serverUrl){
 			search.toggle();
 			if (search.is(':visible')) {
 				search.find('input').focus();
+			} else {
+				that.searchResultHide();
 			}
 		})
 		.on('input', '.chat-search-field input', function(){
@@ -137,8 +137,8 @@ function Chat(serverUrl){
 				that.socket.emit('search.chat', {text: text});
 			}, 500);
 		})
-		.on('click', '.chat-search-item', function(e){
-			var $this = $(this);
+		.on('click', '.chat-add', function(e){
+			var $this = $(this).closest('[data-type][data-id]');
 			if (that.$chatItem($this.data('type'), $this.data('id')).length) return;
 			that.socket.emit('add.chat', {id: $this.data('id'), type: $this.data('type')});
 		})
@@ -154,7 +154,11 @@ function Chat(serverUrl){
 			that.readChatMessages($this.data('type'), $this.data('id'));
 		})
 		.on('click', '.chat-notread-icon', function(){
-			$('.chat-notread-items').toggle();
+			if ($('#chat-notread').hasClass('show-items')) {
+				that.hideNotReadMessages();
+			} else {
+				that.openNotReadMessages();
+			}
 		})
 		.on('wheel', '#chat-list-items', function(e){
 			e.preventDefault();
@@ -202,26 +206,25 @@ function Chat(serverUrl){
 	this.searchResults = {};
 
 	this.connectionStatus = false;
-	this.connectionNotice;
-	this.connectionNoticeTimer;
-	this.changeConnectionStatus = function(status, notice){
-		that.connectionNotice = notice || '';
+	this.connectionTimer;
+	this.changeConnectionStatus = function(status){
 		that.connectionStatus = !!status;
 
-
+		if (that.connectionTimer) clearTimeout(that.connectionTimer);
 		if (that.connectionStatus) {
-			$('#chat-server-status').removeClass('chat-connection-off').addClass('chat-connection-on').fadeOut(300);
+			$('#chat-server-status')
+				.removeClass('chat-connection-off')
+				.addClass('chat-connection-on')
+				.removeAttr('title')
+				.fadeOut(300);
 		} else {
-			$('#chat-server-status').removeClass('chat-connection-on').addClass('chat-connection-off').show();
-		}
-		
-		if (that.connectionNotice) {
-			$('#chat-server-status .chat-server-notice').html(that.connectionNotice).addClass('show');
-			if (that.connectionNoticeTimer) clearTimeout(that.connectionNoticeTimer);
-			that.connectionNoticeTimer = setTimeout(function(){
-				$('#chat-server-status .chat-server-notice').removeClass('show');
-				if (!that.connectionNotice) $('#chat-server-status .chat-server-notice').addClass('hide');
-			}, 2000);
+			that.connectionTimer = setTimeout(function(){
+				$('#chat-server-status')
+				.removeClass('chat-connection-on')
+				.addClass('chat-connection-off')
+				.attr('title', 'no connection to server')
+				.show();
+			}, 1000);
 		}
 	};
 	this.addNewMessages = function(count){
@@ -277,12 +280,11 @@ function Chat(serverUrl){
 			that.notReadMessages[chatKey][items[key].id] = items[key];
 		}
 		//console.log('not read messages', items);
-		that.renderNotReadMessages();
+		that.renderNotReadInfo();
 		that.addNewMessages(items.length);
 	};
-	this.renderNotReadMessages = function(){
+	this.renderNotReadInfo = function(){
 		$('.chat-notread-info').remove();
-		$('.chat-notread-items').html('');
 		var countAll = 0;
 		for (var key in that.notReadMessages) {
 			var chatMsgs = that.notReadMessages[key];
@@ -296,40 +298,84 @@ function Chat(serverUrl){
 				countAll++;				
 			}
 			if (!count) continue;
-			if (msg.type == 'user') {
-				$('.chat-notread-items').append('<div class="chat-notread-item" data-id="'+msg.user.id+'" data-type="'+msg.type+'">'+
-						'<img class="chat-item-icon" src="/uploads/profile_image/'+msg.user.guid+'.jpg">'+
-						(msg.user.online ?
-							'<span class="chat-item-online"></span>' :
-							'<span class="chat-item-online ofline"></span>'
-						)+
-						'<span class="chat-notread-info">'+count+'</span>'+
-						'<div class="chat-item-title"><b class="chat-item-name">'+msg.user.name+'</b><i class="chat-item-description">'+msg.user.title+'</i></div>'+
-					'</div>');
-			} else {
-				$('.chat-notread-items').append('<div class="chat-notread-item" data-id="'+msg.object.id+'" data-type="'+msg.type+'">'+
-						'<img class="chat-item-icon" src="/uploads/profile_image/'+msg.object.guid+'.jpg">'+
-						(msg.object.online ?
-							'<span class="chat-item-online">'+msg.object.online+'</span>' :
-							'<span class="chat-item-online ofline"></span>'
-						)+
-						'<span class="chat-notread-info">'+count+'</span>'+
-						'<div class="chat-item-title"><b class="chat-item-name">'+msg.object.name+'</b><i class="chat-item-description">'+msg.object.title+'</i></div>'+
-					'</div>');
-			}
 			var $item = that.$chatItem(keyArr[0], keyArr[1]);
 			if (!$item.length) continue;
 			$item.append('<span class="chat-notread-info">'+count+'</span>');
 		}
 		if (countAll) {
 			that.userIconDefault();
-			$('#chat-notread .chat-notread-count').text(countAll);
-			$('#chat-notread').show();
+			$('#chat-notread .chat-notread-count').show().text(countAll);
+			$('#chat-notread').addClass('show');
 			//console.log('not read exixt', countAll);
 		} else {
-			$('#chat-notread').hide();
+			$('#chat-notread .chat-notread-count').hide().text('');
+			$('#chat-notread').removeClass('show');
 		}
 	};
+	this.openNotReadMessages = function(){
+		var $contener = $('.chat-notread-items');
+		$contener.html('');
+		var items = [];
+		for (var key in that.notReadMessages) {
+			var block = '';
+			for (var n in that.notReadMessages[key]) {
+				if (that.notReadMessages[key][n].read_at) continue;
+				that.notReadMessages[key][n].read_at = true;
+				var msg = that.notReadMessages[key][n];
+				items.push({id: msg.id, type: msg.type, object_id: msg.object_id, user_id: msg.user_id});
+				if (!block)	{
+					if (msg.type == 'user') {
+						block = '<div class="chat-notread-block">'+
+							'<div class="chat-notread-item" data-id="'+msg.user.id+'" data-type="'+msg.type+'">'+
+								'<img class="chat-item-icon" src="/uploads/profile_image/'+msg.user.guid+'.jpg">'+
+								'<div class="chat-item-name">'+msg.user.name+'</div><div class="chat-item-description">'+msg.user.title+'</div>'+
+								(!that.$chatItem(msg.type, msg.user.id).length ? '<span class="chat-add"><i class="fa fa-plus"></i></span>' : '')+
+							'</div><div class="chat-notread-messages">';
+					} else {
+						block = '<div class="chat-notread-block">'+
+							'<div class="chat-notread-item" data-id="'+msg.object.id+'" data-type="'+msg.type+'">'+
+								'<img class="chat-item-icon" src="/uploads/profile_image/'+msg.object.guid+'.jpg">'+
+								'<div class="chat-item-name">'+msg.object.name+'</div><div class="chat-item-description">'+msg.object.title+'</div>'+
+								(!that.$chatItem(msg.type, msg.object.id).length ? '<span class="chat-add"><i class="fa fa-plus"></i></span>' : '')+
+							'</div><div class="chat-notread-messages">';
+					}
+				}
+				if (msg.object.type == 'user') {
+					block += '<div class="chat-message-wrap chat-message-notread" data-id="'+msg.id+'">'+
+							'<div class="chat-message">'+
+								'<span class="chat-msg-text">'+that.renderMessageText(msg.text)+'</span>'+
+								'<span class="chat-msg-time" data-time="'+msg.created_at+'">'+that.dateFormat(msg.created_at)+'</span>'+
+							'</div>'+
+						'</div>';
+				} else {
+					block += '<div class="chat-message-wrap chat-message-notread" data-id="'+msg.id+'">'+
+							'<img class="chat-item-icon" src="/uploads/profile_image/'+msg.user.guid+'.jpg">'+
+							'<div class="chat-message">'+
+								'<div class="chat-message-user">'+msg.user.name+'</div>'+
+								'<span class="chat-msg-text">'+that.renderMessageText(msg.text)+'</span>'+
+								'<span class="chat-msg-time" data-time="'+msg.created_at+'">'+that.dateFormat(msg.created_at)+'</span>'+
+							'</div>'+
+						'</div>';
+				}
+			}
+			block += '</div></div>';
+			$contener.append(block);
+		}
+		that.userIconDefault();
+		that.renderNotReadInfo();
+		that.socket.emit('messages.read', items);
+		$('.chat-window .chat-message-notread').removeClass('chat-message-notread');
+		if ($('.chat-item').length > 4) {
+			$contener.addClass('bottom');
+		} else {
+			$contener.removeClass('bottom');
+		}
+		$('#chat-notread').addClass('show-items');
+	};
+	this.hideNotReadMessages = function(){
+		$('.chat-notread-items').html('');
+		$('#chat-notread').removeClass('show-items');
+	}
 	this.readChatMessages = function(type, id){
 		if (!that.notReadMessages[type+'-'+id]) return;
 		var items = [];
@@ -340,7 +386,7 @@ function Chat(serverUrl){
 		}
 		that.socket.emit('messages.read', items);
 		that.$chatWindow(type, id).find('.chat-message-notread').removeClass('chat-message-notread');
-		that.renderNotReadMessages();
+		that.renderNotReadInfo();
 		//console.log('read', items);
 	};
 	this.readMessages = function(items){
@@ -355,7 +401,6 @@ function Chat(serverUrl){
 			$('body').append('<div id="chat-list">'+
 					'<div id="chat-server-status">'+
 						'<div class="chat-server-status-icon"><i class="fa fa-warning"></i></div>'+
-						'<div class="chat-server-notice"></div>'+
 					'</div>'+
 					'<div id="chat-notread">'+
 						'<div class="chat-notread-icon"><i class="fa fa-envelope"></i><span class="chat-notread-count"></span></div>'+
@@ -385,9 +430,10 @@ function Chat(serverUrl){
 					)+
 					'<div class="chat-item-title"><b class="chat-item-name">'+items[key].name+'</b><i class="chat-item-description">'+items[key].title+'</i></div>'+
 				'</div>');
+			$('[data-type='+items[key].type+'][data-id='+items[key].id+'] .chat-add').remove();
 		}
 		that.$chatList().show();
-		that.renderNotReadMessages();
+		that.renderNotReadInfo();
 		that.userIconDefault();
 		that.scrollChatList(0);
 	};
@@ -425,6 +471,11 @@ function Chat(serverUrl){
 	this.searchResult = function(items){
 		var resultContener = $('.chat-search-result');
 		resultContener.html('');
+		if ($('.chat-item').length > 4) {
+			resultContener.addClass('bottom');
+		} else {
+			resultContener.removeClass('bottom');
+		}
 		if (!items.length) {
 			resultContener.append('<div class="chat-search-empty">Чаты не найдены</div>');
 			return;
@@ -432,11 +483,21 @@ function Chat(serverUrl){
 		for (var key in items) {
 			resultContener.append('<div class="chat-search-item" data-type="'+items[key].type+'" data-id="'+items[key].id+'">'+
 					'<img class="chat-item-icon" src="/uploads/profile_image/'+items[key].guid+'.jpg">'+
+					(items[key].online ?
+						'<span class="chat-item-online"></span>' :
+						'<span class="chat-item-online ofline"></span>'
+					)+
 					'<div class="chat-search-item-name">'+items[key].name+'</div>'+
 					'<div class="chat-search-item-description">'+items[key].title+'</div>'+
+					(!that.$chatItem(items[key].type, items[key].id).length ? '<span class="chat-add"><i class="fa fa-plus"></i></span>' : '')+
 				'</div>');
 		}
 		this.userIconDefault();
+	};
+	this.searchResultHide = function(){
+		$(".chat-search-field").hide();
+        $(".chat-search-field input").val('');
+        $('.chat-search-result').html('');
 	};
 	// Открывает окно чата
 	this.openChatWindow = function(type, id){
