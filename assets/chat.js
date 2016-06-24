@@ -463,7 +463,7 @@ function Chat(serverUrl){
 					(arr.length > 1 ? arr[0][0]+arr[1][0] : arr[0][0]).toUpperCase()+
 					'</div>');
 			} else {
-				if (this.src != '/img/default_user.jpg') this.src = '/img/default_user.jpg';
+				if ($(this).attr('src') != '/img/default_user.jpg') this.src = '/img/default_user.jpg';
 				else $(this).remove();
 			}
 			//console.log('no chat icon');
