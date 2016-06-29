@@ -1,5 +1,6 @@
 var config = require('./config');
 var cookie = require('cookie');
+const fs = require('fs');
 
 var mysql = require('mysql');
 var db = mysql.createPool({
@@ -32,10 +33,20 @@ var chat = {
 			function(err, rows, fields){
 				if (err) throw err;
 				for (var n in rows) {
-					chatItems[rows[n].type+'-'+rows[n].id] = rows[n];
+					chat.addChatItemCache(rows[n]);
 				}
 			}
 		);
+	},
+	addChatItemCache: function(item){
+		fs.exists(config.userImagePath+item.guid+'.jpg', function(exists){
+			if (exists) {
+				item.image = config.userImageUrl+item.guid+'.jpg';
+			} else {
+				item.image = item.type == 'user' ? config.userImageUrlDefault : null;
+			}
+			chatItems[item.type+'-'+item.id] = item;
+		});
 	},
 	getChatItem: function(type, id){
 		var key = type+'-'+id;
@@ -176,6 +187,10 @@ var chat = {
 	prepareChatItems: function(items){
 		if (!Array.isArray(items)) {
 			items.online = chat.checkOnline(items.id, items.type);
+			if (!items.image) {
+				chatItem = chat.getChatItem(items.type, items.id);
+				items.image = chatItem ? chatItem.image : null;
+			}
 			return items;
 		}
 		for (var key in items) {
@@ -293,13 +308,22 @@ var chat = {
 	addChat: function(socket, data){
 		data = chat.replaceType(data);
 		db.query(
-			'INSERT INTO chat_user (user_id, object_model, object_id) VALUES (?, ?, ?)',
+			'SELECT * FROM chat_user WHERE user_id = ? AND object_model = ? AND object_id = ?',
 			[socket.userId, data.objectModel, data.id],
-		 	function(err, result){
+		 	function(err, rows, fields){
 				if (err) throw err;
-				//console.log('add chat');
-				var res = chat.prepareChatItems({status: true, type: data.type, id: data.id});
-				socket.emit('add.chat-status', res);
+				
+				if (rows.length) return;
+				db.query(
+					'INSERT INTO chat_user (user_id, object_model, object_id) VALUES (?, ?, ?)',
+					[socket.userId, data.objectModel, data.id],
+				 	function(err, result){
+						if (err) throw err;
+						//console.log('add chat');
+						var res = chat.prepareChatItems({status: true, type: data.type, id: data.id});
+						socket.emit('add.chat-status', res);
+					}
+				);
 			}
 		);
 	},

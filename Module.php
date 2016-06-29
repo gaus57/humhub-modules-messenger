@@ -2,12 +2,16 @@
 
 namespace humhub\modules\chat;
 
+use humhub\libs\ProfileImage;
+
 class Module extends \humhub\components\Module
 {
 
     public function enable()
     {
         parent::enable();
+
+        $profileImage = new ProfileImage('0000-0000');
 
         // Создаем файл конфигурации для сервера
         $configContent = file_get_contents($this->getBasePath() . '/server/config.js.exempl');
@@ -18,6 +22,9 @@ class Module extends \humhub\components\Module
             '@|db_password|@' => \Yii::$app->db->password,
             '@|db_name|@' => preg_replace('/^.+?dbname=(.+)$/', "$1", \Yii::$app->db->dsn),
             '@|port|@' => $params['node_server_port'],
+            '@|user_image_path|@' => pathinfo($profileImage->getPath(), PATHINFO_DIRNAME) . '/',
+            '@|user_image_url|@' => \Yii::getAlias('@web/uploads/profile_image/'),
+            '@|user_image_url_default|@' => $profileImage->getUrl(),
         ];
         $configContent = str_replace(array_keys($replace), array_values($replace), $configContent);
         file_put_contents($this->getBasePath() . '/server/config.js', $configContent);

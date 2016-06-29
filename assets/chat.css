@@ -1,7 +1,7 @@
 #chat-list{
 	position: fixed;
 	bottom: 0;
-	right: 0;
+	right: 8px;
 	z-index: 10;
 }
 .chat-items-contener{
@@ -126,7 +126,7 @@
 	position: fixed;
 	padding: 2px 7px;
 	margin-top: -40px;
-	right: 55px;
+	right: 63px;
 	height: 40px;
 	border-radius: 5px;
 	background: #7F9BAA;
@@ -204,7 +204,7 @@
 	position: absolute;
 	width: 280px;
 	max-height: 350px;
-	right: 55px;
+	right: 63px;
 	bottom: -45px;
 	border-radius: 5px;
 	overflow-y: auto;
@@ -296,7 +296,7 @@
 .chat-search-field{
 	display: none;
 	position: absolute;
-	right: 50px;
+	right: 58px;
 	top: 0;
 	height: 40px;
 	width: 250px;
@@ -400,7 +400,7 @@
 .chat-window{
 	position: fixed;
 	bottom: 0;
-	right: 55px;
+	right: 63px;
 	width: 250px;
 }
 .chat-head{
@@ -466,10 +466,10 @@
 	position: absolute;
 	bottom: 7px;
 	left: -5px;
-	border-right: 5px solid #fff;
+	border-right: 6px solid #fff;
 	border-left: none;
-	border-bottom: 5px solid transparent;
-	border-top: 5px solid transparent;
+	border-bottom: 6px solid transparent;
+	border-top: 6px solid transparent;
 }
 .chat-message::after{
 	content: '';

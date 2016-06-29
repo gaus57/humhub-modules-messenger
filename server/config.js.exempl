@@ -1,4 +1,4 @@
-var config ={
+var config = {
 	'port': '@|port|@',
 
 	// Настройки MySql
@@ -6,5 +6,8 @@ var config ={
 	'dbUser': '@|db_username|@',
 	'dbPass': '@|db_password|@',
 	'dbDatabase': '@|db_name|@',
-}
+	'userImagePath': '@|user_image_path|@',
+	'userImageUrl': '@|user_image_url|@',
+	'userImageUrlDefault': '@|user_image_url_default|@',
+};
 module.exports = config;
