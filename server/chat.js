@@ -45,6 +45,7 @@ var chat = {
 			} else {
 				item.image = item.type == 'user' ? config.userImageUrlDefault : null;
 			}
+			item.title = item.title || '';
 			chatItems[item.type+'-'+item.id] = item;
 		});
 	},
