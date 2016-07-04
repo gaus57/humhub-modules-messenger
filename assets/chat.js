@@ -91,7 +91,7 @@ function Chat(serverUrl){
 		        	var $this= $(this);
 					var type = $this.data('type');
 					var id = $this.data('id');
-					var text = $this.val();
+					var text = $this.val().trim();
 					if (!text) { return; }
 					//console.log('send message');
 					that.socket.emit(type+'.message', {id: id, text: text});

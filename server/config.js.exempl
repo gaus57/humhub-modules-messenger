@@ -8,6 +8,6 @@ var config = {
 	'dbDatabase': '@|db_name|@',
 	'userImagePath': '@|user_image_path|@',
 	'userImageUrl': '@|user_image_url|@',
-	'userImageUrlDefault': '@|user_image_url_default|@',
+	'userImageUrlDefault': '@|user_image_url_default|@'
 };
 module.exports = config;

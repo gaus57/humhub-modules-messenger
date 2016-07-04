@@ -11,7 +11,7 @@ class Module extends \humhub\components\Module
     {
         parent::enable();
 
-        $profileImage = new ProfileImage('0000-0000');
+        $profileImage = new ProfileImage('');
 
         // Создаем файл конфигурации для сервера
         $configContent = file_get_contents($this->getBasePath() . '/server/config.js.exempl');

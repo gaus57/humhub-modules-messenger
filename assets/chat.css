@@ -202,7 +202,7 @@
 .chat-notread-items{
 	display: none;
 	position: absolute;
-	width: 280px;
+	width: 300px;
 	max-height: 350px;
 	right: 63px;
 	bottom: -45px;
@@ -401,7 +401,7 @@
 	position: fixed;
 	bottom: 0;
 	right: 63px;
-	width: 250px;
+	width: 280px;
 }
 .chat-head{
 	height: 30px;
@@ -414,7 +414,7 @@
 	display: inline-block;
 	padding-left: 10px;
 	line-height: 30px;
-	width: 210px;
+	width: 230px;
 	white-space: nowrap;
 	text-overflow: ellipsis;
 	overflow: hidden;
@@ -500,6 +500,7 @@
 	vertical-align: bottom;
 	margin-right: 8px;
 	border-radius: 2px;
+	font-size: 11px;
 }
 .chat-message-wrap.chat-message-my .chat-item-icon{
 	display: none;

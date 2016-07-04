@@ -1,5 +1,5 @@
 .htaccess
-.idea/*
+.idea
 .gitmodules
 /composer.lock
 server/config.js
