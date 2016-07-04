@@ -1,5 +1,5 @@
 // Конструктор объекта чата
-function Chat(serverUrl){
+function Messenger(serverUrl){
 	var that = this;
 
 	try {

@@ -4,10 +4,10 @@ use humhub\modules\chat\Module;
 use humhub\widgets\TopMenu;
 
 return [
-    'id' => 'chat',
-    'class' => 'humhub\modules\chat\Module',
-    'namespace' => 'humhub\modules\chat',
+    'id' => 'messenger',
+    'class' => 'humhub\modules\messenger\Module',
+    'namespace' => 'humhub\modules\messenger',
     'events' => [
-        ['class' => TopMenu::className(), 'event' => TopMenu::EVENT_INIT, 'callback' => ['humhub\modules\chat\Module', 'onTopMenuInit']],
+        ['class' => TopMenu::className(), 'event' => TopMenu::EVENT_INIT, 'callback' => ['humhub\modules\messenger\Module', 'onTopMenuInit']],
     ],
 ];

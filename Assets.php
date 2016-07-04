@@ -1,6 +1,6 @@
 <?php
 
-namespace humhub\modules\chat;
+namespace humhub\modules\messenger;
 
 use yii\web\AssetBundle;
 use Yii;
