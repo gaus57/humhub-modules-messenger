@@ -12,11 +12,11 @@ class Assets extends AssetBundle
     ];
 
     public $css = [
-        'chat.css',
+        'messenger.css',
     ];
     
     public $js = [
-        'chat.js',
+        'messenger.js',
     ];
 
     public function init()
