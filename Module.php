@@ -40,7 +40,7 @@ class Module extends \humhub\components\Module
 
         Assets::register($event->sender->view);
         $params = require(__DIR__ . '/params.php');
-        $script = "if (typeof Messenger == 'function') var messenger = new Messenger(document.location.origin+':" . $params['node_server_port'] . "');";
+        $script = "if (typeof Messenger == 'function') messenger = new Messenger(document.location.origin+':" . $params['node_server_port'] . "', '" . \Yii::getAlias('@web') . "');";
         $event->sender->view->registerJs($script, \yii\web\View::POS_READY);
     }
 

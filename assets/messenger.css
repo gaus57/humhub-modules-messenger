@@ -208,6 +208,7 @@
 	bottom: -45px;
 	border-radius: 5px;
 	overflow-y: auto;
+	overflow-x: hidden;
 	background: #7F9BAA;
 	box-shadow: 0 0 3px rgba(0,0,0,.7);
 }
@@ -523,15 +524,79 @@
 	float: right;
 }
 .chat-field{
+	position: relative;
 	height: 15%;
 	padding: 5px 0;
 	box-sizing: border-box;
 }
-.chat-field textarea{
+.chat-send{
 	width: 100%;
 	height: 100%;
-	border: none;
+	padding-left: 25px;
+	background: #fff;
+	box-sizing: border-box;
+	overflow-y: auto;
 }
-.chat-field textarea:focus{
+.chat-field .chat-send:focus{
 	outline: none;
+}
+
+
+.chat-smile-icon{
+	position: absolute;
+	display: block;
+	top: 8px;
+	left: 3px;
+	width: 18px;
+	height: 18px;
+	line-height: 18px;
+	font-size: 18px;
+	color: #bbb;;
+	cursor: pointer;
+}
+.chat-smile-list{
+	position: absolute;
+	bottom: 50px;
+	left: 5px;
+	width: 90%;
+	background: #fff;
+	border-radius: 3px;
+	z-index: 20;
+}
+.chat-smile-tab{
+	list-style: none;
+	margin: 0;
+	padding: 0 5px;
+}
+.chat-smile-tab li{
+	display: inline-block;
+	padding: 2px 5px;
+	line-height: 14px;
+	font-size: 14px;
+	cursor: pointer;
+	border: 1px solid #ccc;
+	border-bottom: none;
+	border-left: none;
+	border-radius: 3px 3px 0 0;
+}
+.chat-smile-tab li:nth-child(1){
+	border-left: 1px solid #ccc;
+}
+.chat-smile-tabcontent div{
+	display: none;
+	max-height: 100px;
+	width: 100%;
+	overflow-y: auto;
+	padding: 5px;
+	box-sizing: border-box;
+}
+.chat-smile-list .chat-smile{
+	margin: 3px;
+	cursor: pointer;
+}
+.chat-smile{
+	display: inline-block;
+	width: 18px;
+	height: 18px;
+	vertical-align: baseline;
 }
