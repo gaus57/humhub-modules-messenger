@@ -536,6 +536,7 @@
 	background: #fff;
 	box-sizing: border-box;
 	overflow-y: auto;
+	overflow-x: hidden;
 }
 .chat-field .chat-send:focus{
 	outline: none;
@@ -557,11 +558,16 @@
 .chat-smile-list{
 	position: absolute;
 	bottom: 50px;
-	left: 5px;
-	width: 90%;
-	background: #fff;
+	left: 0;
+	width: 100%;
+	padding: 0 5px;
 	border-radius: 3px;
+	overflow: hidden;
 	z-index: 20;
+	box-sizing: border-box;
+}
+.chat-smile-list-content{
+	background: #fff;
 }
 .chat-smile-tab{
 	list-style: none;

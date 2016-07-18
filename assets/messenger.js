@@ -102,32 +102,6 @@ function Messenger(serverUrl, baseUrl){
 					return false;
 				}
 			}
-
-            // if (e.keyCode == 13) {
-		    //     if (e.ctrlKey) {
-		    //         var val = this.innerHTML;
-		    //         if (typeof this.selectionStart == "number" && typeof this.selectionEnd == "number") {
-		    //             var start = this.selectionStart;
-		    //             this.innerHTML = val.slice(0, start) + "\n" + val.slice(this.selectionEnd);
-		    //             this.selectionStart = this.selectionEnd = start + 1;
-		    //         } else if (document.selection && document.selection.createRange) {
-		    //             this.focus();
-		    //             var range = document.selection.createRange();
-		    //             range.text = "\r\n";
-		    //             range.collapse(false);
-		    //             range.select();
-		    //         }
-		    //     } else {
-		    //     	var $this= $(this);
-				// 	var type = $this.data('type');
-				// 	var id = $this.data('id');
-				// 	var text = $this.html().trim();
-				// 	if (!text) { return; }
-				// 	//console.log('send message');
-				// 	that.socket.emit(type+'.message', {id: id, text: text});
-			 //    }
-		    //     return false;
-		    // }
 		})
 		.on('mouseup', function(e){
 		    var container = $(".chat-window");
@@ -206,71 +180,41 @@ function Messenger(serverUrl, baseUrl){
 				$('title').text(that.pageTitle);
 			}
 		})
-		.on('click', '.chat-smile-icon', function(e){
-			var $win = $(this).closest('.chat-window');
-			if (!that.openSmilesList($win.data('type'), $win.data('id'))) {
-				that.closeSmilesList($win.data('type'), $win.data('id'));
+		.on('mouseenter', '.chat-smile-icon, .chat-smile-list', function(e){
+			if (that.smilesListHideTimeout) {
+				clearTimeout(that.smilesListHideTimeout);
 			}
+			console.log('open smoles list');
+			var $win = $(this).closest('.chat-window');
+			that.openSmilesList($win.data('type'), $win.data('id'))
+		})
+		.on('mouseleave', '.chat-smile-icon, .chat-smile-list', function(e){
+			if (that.smilesListHideTimeout) {
+				clearTimeout(that.smilesListHideTimeout);
+			}
+			var $win = $(this).closest('.chat-window');
+			that.smilesListHideTimeout = setTimeout(function(){
+				that.closeSmilesList($win.data('type'), $win.data('id'));
+			}, 500);
 		})
 		.on('click', '.chat-smile-tab li', function(e){
 			that.clickSmileTab(this);
 		})
 		.on('click', '.chat-smile-list .chat-smile', function(e){
 			if (!that.lastSelection) return false;
-			$(this).closest('.chat-window').find('.chat-send').focus();
 
-			//restore selection
-			if (window.getSelection) {
-				var s = window.getSelection();
-				if (s.rangeCount > 0)
-					s.removeAllRanges();
-				s.addRange(that.lastSelection);
-			} else if (document.createRange) {
-				window.getSelection().addRange(that.lastSelection);
-			} else if (document.selection) {
-				that.lastSelection.select();
-			}
-
+			that.restoreSelection();
 			html = this.outerHTML;
-			var sel, range;
-			if (window.getSelection) {
-				// IE9 and non-IE
-				sel = window.getSelection();
-				if (sel.getRangeAt && sel.rangeCount) {
-					range = sel.getRangeAt(0);
-					range.deleteContents();
-
-					// Range.createContextualFragment() would be useful here but is
-					// only relatively recently standardized and is not supported in
-					// some browsers (IE9, for one)
-					var el = document.createElement("div");
-					el.innerHTML = html;
-					var frag = document.createDocumentFragment(), node, lastNode;
-					while ( (node = el.firstChild) ) {
-						lastNode = frag.appendChild(node);
-					}
-					range.insertNode(frag);
-
-					// Preserve the selection
-					if (lastNode) {
-						range = range.cloneRange();
-						range.setStartAfter(lastNode);
-						range.collapse(true);
-						sel.removeAllRanges();
-						sel.addRange(range);
-					}
-				}
-			} else if (document.selection && document.selection.type != "Control") {
-				// IE < 9
-				document.selection.createRange().pasteHTML(html);
-			}
+			that.pasteToCaret(html);
 		})
 		.on('blur', '.chat-send', function(e){
-			if(window.getSelection) {
-				that.lastSelection = window.getSelection().getRangeAt(0);
-			} else if(document.selection) {
-				that.lastSelection = document.selection.createRange();
-			}
+			that.saveSelection();
+		})
+		.on('paste', '.chat-send', function(e){
+			e.preventDefault();
+			var clipboardData = e.originalEvent.clipboardData || e.clipboardData || window.clipboardData;
+			var pastedData = clipboardData.getData('text/html') || clipboardData.getData('text');
+			that.filterPaster(pastedData);
 		});
 	$(window)
 		.on('blur', function(){
@@ -278,8 +222,8 @@ function Messenger(serverUrl, baseUrl){
 			that.pageFocus = false;
 		});
 
+	this.smilesListHideTimeout;
 	this.searchTimeOut;
-	this.lastSelection;
 	this.pageFocus = false;
 	this.userId;
 	
@@ -303,6 +247,28 @@ function Messenger(serverUrl, baseUrl){
 
 	this.connectionStatus = false;
 	this.connectionTimer;
+	this.lastSelection;
+	this.saveSelection = function(){
+		if(window.getSelection) {
+			that.lastSelection = window.getSelection().getRangeAt(0);
+		} else if(document.selection) {
+			that.lastSelection = document.selection.createRange();
+		}
+	};
+	this.restoreSelection = function(){
+		$('.chat-window:visible .chat-send').focus();
+		//restore selection
+		if (window.getSelection) {
+			var s = window.getSelection();
+			if (s.rangeCount > 0)
+				s.removeAllRanges();
+			s.addRange(that.lastSelection);
+		} else if (document.createRange) {
+			window.getSelection().addRange(that.lastSelection);
+		} else if (document.selection) {
+			that.lastSelection.select();
+		}
+	};
 	this.changeConnectionStatus = function(status){
 		that.connectionStatus = !!status;
 
@@ -666,16 +632,6 @@ function Messenger(serverUrl, baseUrl){
 			}
 		}
 	};
-	this.renderMessageText = function(text){
-		text = text.replace(
-			/((http|ftp|https):\/\/[\w-]+(\.[\w-]+)+([\w.,@?^=%&amp;:\/~+#-]*[\w@?^=%&amp;\/~+#-])?)/g,
-			"<a target='_blank' href='$1'>$1</a>"
-		).replace(/#([^#]*?)#/mg, function(str, p1){
-			var smileArr = p1.split('.');
-			return that.renderSmile(smileArr[0], smileArr[1]);
-		});
-		return text.replace(/(\r\n|\r|\n)/g, '<br>');
-	};
 	this.chatOflineTimer = {};
 	this.chatOfline = function(type, id){
 		var item = that.$chatItem(type, id);
@@ -739,10 +695,10 @@ function Messenger(serverUrl, baseUrl){
 			}
 			tabsContent += '</div>';
 		}
-		return '<div class="chat-smile-list"><div class="chat-smile-tabcontent">'+tabsContent+'</div><ul class="chat-smile-tab">'+tabs+'</ul></div>';
+		return '<div class="chat-smile-list"><div class="chat-smile-list-content"><div class="chat-smile-tabcontent">'+tabsContent+'</div><ul class="chat-smile-tab">'+tabs+'</ul></div></div>';
 	};
 	this.renderSmile = function(group, code){
-		if (typeof that.smiles[group].items[code] == 'undefined') {
+		if (typeof that.smiles[group] == 'undefined' || typeof that.smiles[group].items[code] == 'undefined') {
 			return null;
 		}
 		var smile = that.smiles[group].items[code];
@@ -759,10 +715,71 @@ function Messenger(serverUrl, baseUrl){
 			.filter('[data-id='+$elem.data('id')+']').show();
 	};
 	this.prepareTextSend = function(text){
-		return text.replace(/<img[^>]*?data-id="([^"']*?)"[^>]*?>/gm, "#$1#")
-			.replace(/<br>/gm, "\r\n")
+		var res = text.replace(/<img[^>]*?data-id="([^"']*?)"[^>]*?>/gm, "#$1#")
+			.replace(/<a\s+[^>]*?href=["']([^"']*)["'][^>]*?>([^<]*)<\/a>/gm, function(str, p1, p2, offset, s){
+				if (p1 == p2) return '[['+p1+']]';
+				return '[['+p1+' '+p2+']]';
+			})
+			.replace(/((http|ftp|https):\/\/[\w-]+(\.[\w-]+)+([\w.,@?^=%&amp;:\/~+#-]*[\w@?^=%&amp;\/~+#-])?)/gm, function(str, p1, p2, p3, p4, offset, s){
+				if (s[offset-1] == '[' && s[offset-2] == '[') return str;
+				if (s[offset+str.length] == ']' && s[offset+str.length+1] == ']') return str;
+				return '[['+p1+']]';
+			})
+			.replace(/\t+/gm, ' ')
+			.replace(/<br[^>]*>/gm, "\r\n")
 			.replace(/<\/?[^>]*?>/gm, "")
 			.replace(/&nbsp;/gm, ' ');
+		return res;
+	};
+	this.renderMessageText = function(text){
+		text = text.replace(/\[\[([^\s\]]+)\s?([^\]]+)?\]\]/gm, function(str, p1, p2){
+			var link = p1, name = p2 || p1;
+			return '<a target="_blank" href="'+link+'">'+name+'</a>';
+		})
+		.replace(/#([^#]*?)#/mg, function(str, p1){
+			var smileArr = p1.split('.');
+			var smile = that.renderSmile(smileArr[0], smileArr[1]);
+			return smile ? smile : str;
+		})/*.replace(/ /gm, "&nbsp;")*/;
+		return text.replace(/(\r\n|\r|\n)/gm, '<br>');
+	};
+	this.pasteToCaret = function(content){
+		var sel, range;
+		if (window.getSelection) {
+			// IE9 and non-IE
+			sel = window.getSelection();
+			if (sel.getRangeAt && sel.rangeCount) {
+				range = sel.getRangeAt(0);
+				range.deleteContents();
+
+				// Range.createContextualFragment() would be useful here but is
+				// only relatively recently standardized and is not supported in
+				// some browsers (IE9, for one)
+				var el = document.createElement("div");
+				el.innerHTML = content;
+				var frag = document.createDocumentFragment(), node, lastNode;
+				while ( (node = el.firstChild) ) {
+					lastNode = frag.appendChild(node);
+				}
+				range.insertNode(frag);
+
+				// Preserve the selection
+				if (lastNode) {
+					range = range.cloneRange();
+					range.setStartAfter(lastNode);
+					range.collapse(true);
+					sel.removeAllRanges();
+					sel.addRange(range);
+				}
+			}
+		} else if (document.selection && document.selection.type != "Control") {
+			// IE < 9
+			document.selection.createRange().pasteHTML(content);
+		}
+	};
+	this.filterPaster = function(content){
+		content = that.renderMessageText(that.prepareTextSend(content).trim());
+		that.pasteToCaret(content);
 	};
 	this.getBaseUrl = function(uri){
 		return that.baseUrl + uri;
@@ -772,6 +789,15 @@ function Messenger(serverUrl, baseUrl){
 			title: 'hh',
 			icon: '<i class="fa fa-smile-o"></i>',
 			items: {
+				'Smile': {
+					img: '/img/emoji/Smile.svg'
+				},
+				'Satisfied': {
+					img: '/img/emoji/Satisfied.svg'
+				},
+				'Worried': {
+					img: '/img/emoji/Worried.svg'
+				},
 				'Ambivalent': {
 					img: '/img/emoji/Ambivalent.svg'
 				},
@@ -780,18 +806,6 @@ function Messenger(serverUrl, baseUrl){
 				},
 				'Astonished': {
 					img: '/img/emoji/Astonished.svg'
-				},
-				'Beer': {
-					img: '/img/emoji/Beer.svg'
-				},
-				'Burger': {
-					img: '/img/emoji/Burger.svg'
-				},
-				'Cake': {
-					img: '/img/emoji/Cake.svg'
-				},
-				'Cocktail': {
-					img: '/img/emoji/Cocktail.svg'
 				},
 				'ColdSweat': {
 					img: '/img/emoji/ColdSweat.svg'
@@ -808,17 +822,11 @@ function Messenger(serverUrl, baseUrl){
 				'Disappointed': {
 					img: '/img/emoji/Disappointed.svg'
 				},
-				'Facepunch': {
-					img: '/img/emoji/Facepunch.svg'
-				},
 				'Fearful': {
 					img: '/img/emoji/Fearful.svg'
 				},
 				'Expressionless': {
 					img: '/img/emoji/Expressionless.svg'
-				},
-				'Fire': {
-					img: '/img/emoji/Fire.svg'
 				},
 				'Flushed': {
 					img: '/img/emoji/Flushed.svg'
@@ -859,12 +867,6 @@ function Messenger(serverUrl, baseUrl){
 				'Mask': {
 					img: '/img/emoji/Mask.svg'
 				},
-				'Mega': {
-					img: '/img/emoji/Mega.svg'
-				},
-				'Muscle': {
-					img: '/img/emoji/Muscle.svg'
-				},
 				'Naughty': {
 					img: '/img/emoji/Naughty.svg'
 				},
@@ -874,20 +876,11 @@ function Messenger(serverUrl, baseUrl){
 				'OpenMouth': {
 					img: '/img/emoji/OpenMouth.svg'
 				},
-				'Party': {
-					img: '/img/emoji/Party.svg'
-				},
-				'PoultryLeg': {
-					img: '/img/emoji/PoultryLeg.svg'
-				},
 				'Relaxed': {
 					img: '/img/emoji/Relaxed.svg'
 				},
 				'Sad': {
 					img: '/img/emoji/Sad.svg'
-				},
-				'Satisfied': {
-					img: '/img/emoji/Satisfied.svg'
 				},
 				'Scream': {
 					img: '/img/emoji/Scream.svg'
@@ -897,9 +890,6 @@ function Messenger(serverUrl, baseUrl){
 				},
 				'Sleeping': {
 					img: '/img/emoji/Sleeping.svg'
-				},
-				'Smile': {
-					img: '/img/emoji/Smile.svg'
 				},
 				'Smirk': {
 					img: '/img/emoji/Smirk.svg'
@@ -916,17 +906,8 @@ function Messenger(serverUrl, baseUrl){
 				'StuckOutTongueWinkingEye': {
 					img: '/img/emoji/StuckOutTongueWinkingEye.svg'
 				},
-				'Sun': {
-					img: '/img/emoji/Sun.svg'
-				},
 				'Sweet': {
 					img: '/img/emoji/Sweet.svg'
-				},
-				'ThumbsDown': {
-					img: '/img/emoji/ThumbsDown.svg'
-				},
-				'ThumbsUp': {
-					img: '/img/emoji/ThumbsUp.svg'
 				},
 				'TiredFace': {
 					img: '/img/emoji/TiredFace.svg'
@@ -937,11 +918,47 @@ function Messenger(serverUrl, baseUrl){
 				'Wink': {
 					img: '/img/emoji/Wink.svg'
 				},
-				'Worried': {
-					img: '/img/emoji/Worried.svg'
-				},
 				'Yum': {
 					img: '/img/emoji/Yum.svg'
+				},
+				'ThumbsDown': {
+					img: '/img/emoji/ThumbsDown.svg'
+				},
+				'ThumbsUp': {
+					img: '/img/emoji/ThumbsUp.svg'
+				},
+				'Facepunch': {
+					img: '/img/emoji/Facepunch.svg'
+				},
+				'Muscle': {
+					img: '/img/emoji/Muscle.svg'
+				},
+				'Beer': {
+					img: '/img/emoji/Beer.svg'
+				},
+				'Burger': {
+					img: '/img/emoji/Burger.svg'
+				},
+				'Cake': {
+					img: '/img/emoji/Cake.svg'
+				},
+				'Cocktail': {
+					img: '/img/emoji/Cocktail.svg'
+				},
+				'Party': {
+					img: '/img/emoji/Party.svg'
+				},
+				'PoultryLeg': {
+					img: '/img/emoji/PoultryLeg.svg'
+				},
+				'Fire': {
+					img: '/img/emoji/Fire.svg'
+				},
+				'Sun': {
+					img: '/img/emoji/Sun.svg'
+				},
+				'Mega': {
+					img: '/img/emoji/Mega.svg'
 				},
 			}
 		}
