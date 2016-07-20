@@ -557,40 +557,58 @@
 }
 .chat-smile-list{
 	position: absolute;
-	bottom: 50px;
+	bottom: 52px;
 	left: 0;
 	width: 100%;
 	padding: 0 5px;
-	border-radius: 3px;
-	overflow: hidden;
 	z-index: 20;
 	box-sizing: border-box;
 }
+.chat-smile-list::after{
+	content: '';
+	display: block;
+	position: absolute;
+	bottom: -6px;
+	left: 9px;
+	width: 6px;
+	height: 6px;
+	border-left: 6px solid transparent;
+	border-right: 6px solid transparent;
+	border-top: 6px solid #fff;
+	border-bottom: none;
+}
 .chat-smile-list-content{
 	background: #fff;
+	border-radius: 3px;
+	overflow: hidden;
+	box-shadow: 0 1px 5px rgba(0, 0, 0, 0.32);
 }
 .chat-smile-tab{
+	display: block;
+	width: 100%;
 	list-style: none;
 	margin: 0;
-	padding: 0 5px;
+	padding: 0;
+	background: #EBEEF2;
 }
 .chat-smile-tab li{
 	display: inline-block;
-	padding: 2px 5px;
-	line-height: 14px;
-	font-size: 14px;
+	padding: 4px 6px;
+	line-height: 18px;
+	font-size: 18px;
 	cursor: pointer;
-	border: 1px solid #ccc;
 	border-bottom: none;
 	border-left: none;
-	border-radius: 3px 3px 0 0;
 }
-.chat-smile-tab li:nth-child(1){
-	border-left: 1px solid #ccc;
+.chat-smile-tab li:hover{
+	background: #E2E6EB;
+}
+.chat-smile-tab li.active{
+	background: #fff;
 }
 .chat-smile-tabcontent div{
 	display: none;
-	max-height: 100px;
+	max-height: 172px;
 	width: 100%;
 	overflow-y: auto;
 	padding: 5px;
@@ -602,7 +620,9 @@
 }
 .chat-smile{
 	display: inline-block;
-	width: 18px;
-	height: 18px;
-	vertical-align: baseline;
+	width: 16px;
+	height: 16px;
+	border: none;
+	vertical-align: top;
+	margin: 0px 1px;
 }

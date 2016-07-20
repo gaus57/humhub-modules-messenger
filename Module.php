@@ -38,9 +38,19 @@ class Module extends \humhub\components\Module
             return;
         }
 
-        Assets::register($event->sender->view);
+        $assets = Assets::register($event->sender->view);
         $params = require(__DIR__ . '/params.php');
-        $script = "if (typeof Messenger == 'function') messenger = new Messenger(document.location.origin+':" . $params['node_server_port'] . "', '" . \Yii::getAlias('@web') . "');";
+        $baseUrl = \Yii::getAlias('@web');
+        $assetsUrl = $assets->baseUrl;
+        $script = <<<END
+if (typeof Messenger == 'function') {
+    messenger = new Messenger({
+        serverUrl: document.location.origin + ':{$params['node_server_port']}',
+        baseUrl: '{$baseUrl}',
+        assetsUrl: '{$assetsUrl}'
+    });
+}
+END;
         $event->sender->view->registerJs($script, \yii\web\View::POS_READY);
     }
 

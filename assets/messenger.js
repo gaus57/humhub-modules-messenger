@@ -1,15 +1,17 @@
 // Конструктор объекта чата
-function Messenger(serverUrl, baseUrl){
+function Messenger(options){
 	var that = this;
-
+	console.log(options);
+	for (var optKey in options) {
+		this[optKey] = options[optKey];
+	}
 	try {
-		this.socket = io(serverUrl);
+		this.socket = io(that.serverUrl);
 	} catch (err) {
 		console.log('chat server is not started');
 		return;
 	}
 
-	this.baseUrl = baseUrl;
 	this.pageTitle = $('title').text();
 	this.newMessages = 0;
 
@@ -702,20 +704,17 @@ function Messenger(serverUrl, baseUrl){
 			return null;
 		}
 		var smile = that.smiles[group].items[code];
-		if (typeof smile.img != 'undefined') {
-			return '<image class="chat-smile" src="'+that.getBaseUrl(smile.img)+'" data-id="'+group+'.'+code+'">';
-		} else if (typeof smile.style != 'undefined') {
-			return '<span class="chat-smile" style="'+smile.style+'" data-id="'+group+'.'+code+'"></span>';
-		}
-		return null;
+		return '<img class="chat-smile" src="'+that.getAlias(smile.img)+'" data-id="'+group+'.'+code+'"'+(smile.style ? ' style="'+that.getAlias(smile.style)+'"' : '')+'>';
 	};
 	this.clickSmileTab = function(elem){
 		var $elem = $(elem);
+		$elem.siblings('.active').removeClass('active');
+		$elem.addClass('active');
 		$elem.closest('.chat-smile-list').find('.chat-smile-tabcontent div').hide()
 			.filter('[data-id='+$elem.data('id')+']').show();
 	};
 	this.prepareTextSend = function(text){
-		var res = text.replace(/<img[^>]*?data-id="([^"']*?)"[^>]*?>/gm, "#$1#")
+		var res = text.replace(/<img[^>]*?data-id="([^"']*?)"[^>]*?>/gm, "&#$1;")
 			.replace(/<a\s+[^>]*?href=["']([^"']*)["'][^>]*?>([^<]*)<\/a>/gm, function(str, p1, p2, offset, s){
 				if (p1 == p2) return '[['+p1+']]';
 				return '[['+p1+' '+p2+']]';
@@ -736,7 +735,7 @@ function Messenger(serverUrl, baseUrl){
 			var link = p1, name = p2 || p1;
 			return '<a target="_blank" href="'+link+'">'+name+'</a>';
 		})
-		.replace(/#([^#]*?)#/mg, function(str, p1){
+		.replace(/&#([^;]+);/mg, function(str, p1){
 			var smileArr = p1.split('.');
 			var smile = that.renderSmile(smileArr[0], smileArr[1]);
 			return smile ? smile : str;
@@ -781,187 +780,10 @@ function Messenger(serverUrl, baseUrl){
 		content = that.renderMessageText(that.prepareTextSend(content).trim());
 		that.pasteToCaret(content);
 	};
-	this.getBaseUrl = function(uri){
-		return that.baseUrl + uri;
+	this.getAlias = function(str){
+		return str.replace('@web', that.baseUrl)
+			.replace('@asset', that.assetsUrl);
 	};
-	this.smiles = {
-		humhub: {
-			title: 'hh',
-			icon: '<i class="fa fa-smile-o"></i>',
-			items: {
-				'Smile': {
-					img: '/img/emoji/Smile.svg'
-				},
-				'Satisfied': {
-					img: '/img/emoji/Satisfied.svg'
-				},
-				'Worried': {
-					img: '/img/emoji/Worried.svg'
-				},
-				'Ambivalent': {
-					img: '/img/emoji/Ambivalent.svg'
-				},
-				'Angry': {
-					img: '/img/emoji/Angry.svg'
-				},
-				'Astonished': {
-					img: '/img/emoji/Astonished.svg'
-				},
-				'ColdSweat': {
-					img: '/img/emoji/ColdSweat.svg'
-				},
-				'Confused': {
-					img: '/img/emoji/Confused.svg'
-				},
-				'Cool': {
-					img: '/img/emoji/Cool.svg'
-				},
-				'Cry': {
-					img: '/img/emoji/Cry.svg'
-				},
-				'Disappointed': {
-					img: '/img/emoji/Disappointed.svg'
-				},
-				'Fearful': {
-					img: '/img/emoji/Fearful.svg'
-				},
-				'Expressionless': {
-					img: '/img/emoji/Expressionless.svg'
-				},
-				'Flushed': {
-					img: '/img/emoji/Flushed.svg'
-				},
-				'Frown': {
-					img: '/img/emoji/Frown.svg'
-				},
-				'Furious': {
-					img: '/img/emoji/Furious.svg'
-				},
-				'Gasp': {
-					img: '/img/emoji/Gasp.svg'
-				},
-				'Gasp2': {
-					img: '/img/emoji/Gasp2.svg'
-				},
-				'Grin': {
-					img: '/img/emoji/Grin.svg'
-				},
-				'Heart': {
-					img: '/img/emoji/Heart.svg'
-				},
-				'Hearteyes': {
-					img: '/img/emoji/Hearteyes.svg'
-				},
-				'Joy': {
-					img: '/img/emoji/Joy.svg'
-				},
-				'KissingClosedEyes': {
-					img: '/img/emoji/KissingClosedEyes.svg'
-				},
-				'KissingHeart': {
-					img: '/img/emoji/KissingHeart.svg'
-				},
-				'Laughing': {
-					img: '/img/emoji/Laughing.svg'
-				},
-				'Mask': {
-					img: '/img/emoji/Mask.svg'
-				},
-				'Naughty': {
-					img: '/img/emoji/Naughty.svg'
-				},
-				'NoMouth': {
-					img: '/img/emoji/NoMouth.svg'
-				},
-				'OpenMouth': {
-					img: '/img/emoji/OpenMouth.svg'
-				},
-				'Relaxed': {
-					img: '/img/emoji/Relaxed.svg'
-				},
-				'Sad': {
-					img: '/img/emoji/Sad.svg'
-				},
-				'Scream': {
-					img: '/img/emoji/Scream.svg'
-				},
-				'Slant': {
-					img: '/img/emoji/Slant.svg'
-				},
-				'Sleeping': {
-					img: '/img/emoji/Sleeping.svg'
-				},
-				'Smirk': {
-					img: '/img/emoji/Smirk.svg'
-				},
-				'Sob': {
-					img: '/img/emoji/Sob.svg'
-				},
-				'StuckOutTongue': {
-					img: '/img/emoji/StuckOutTongue.svg'
-				},
-				'StuckOutTongueClosedEyes': {
-					img: '/img/emoji/StuckOutTongueClosedEyes.svg'
-				},
-				'StuckOutTongueWinkingEye': {
-					img: '/img/emoji/StuckOutTongueWinkingEye.svg'
-				},
-				'Sweet': {
-					img: '/img/emoji/Sweet.svg'
-				},
-				'TiredFace': {
-					img: '/img/emoji/TiredFace.svg'
-				},
-				'Weary': {
-					img: '/img/emoji/Weary.svg'
-				},
-				'Wink': {
-					img: '/img/emoji/Wink.svg'
-				},
-				'Yum': {
-					img: '/img/emoji/Yum.svg'
-				},
-				'ThumbsDown': {
-					img: '/img/emoji/ThumbsDown.svg'
-				},
-				'ThumbsUp': {
-					img: '/img/emoji/ThumbsUp.svg'
-				},
-				'Facepunch': {
-					img: '/img/emoji/Facepunch.svg'
-				},
-				'Muscle': {
-					img: '/img/emoji/Muscle.svg'
-				},
-				'Beer': {
-					img: '/img/emoji/Beer.svg'
-				},
-				'Burger': {
-					img: '/img/emoji/Burger.svg'
-				},
-				'Cake': {
-					img: '/img/emoji/Cake.svg'
-				},
-				'Cocktail': {
-					img: '/img/emoji/Cocktail.svg'
-				},
-				'Party': {
-					img: '/img/emoji/Party.svg'
-				},
-				'PoultryLeg': {
-					img: '/img/emoji/PoultryLeg.svg'
-				},
-				'Fire': {
-					img: '/img/emoji/Fire.svg'
-				},
-				'Sun': {
-					img: '/img/emoji/Sun.svg'
-				},
-				'Mega': {
-					img: '/img/emoji/Mega.svg'
-				},
-			}
-		}
-	};
+	this.smiles = messengerSmiles || {};
 }
 var messanger;

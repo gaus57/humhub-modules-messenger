@@ -16,6 +16,7 @@ class Assets extends AssetBundle
     ];
     
     public $js = [
+        'messenger-smiles.js',
         'messenger.js',
     ];
 
