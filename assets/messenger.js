@@ -186,17 +186,15 @@ function Messenger(options){
 			if (that.smilesListHideTimeout) {
 				clearTimeout(that.smilesListHideTimeout);
 			}
-			console.log('open smoles list');
 			var $win = $(this).closest('.chat-window');
-			that.openSmilesList($win.data('type'), $win.data('id'))
+			that.openSmilesList($win.data('type'), $win.data('id'));
 		})
 		.on('mouseleave', '.chat-smile-icon, .chat-smile-list', function(e){
 			if (that.smilesListHideTimeout) {
 				clearTimeout(that.smilesListHideTimeout);
 			}
-			var $win = $(this).closest('.chat-window');
 			that.smilesListHideTimeout = setTimeout(function(){
-				that.closeSmilesList($win.data('type'), $win.data('id'));
+				that.closeSmilesList();
 			}, 500);
 		})
 		.on('click', '.chat-smile-tab li', function(e){
@@ -668,6 +666,12 @@ function Messenger(options){
 	this.openSmilesList = function(type, id){
 		var $win = that.$chatWindow(type, id);
 		var $smileList = $win.find('.chat-smile-list');
+		if (!$smileList.length) {
+			$smileList = $('.chat-smile-list');
+			if ($smileList.length) {
+				$win.append($smileList);
+			}
+		}
 		if ($smileList.length) {
 			if ($smileList.is(':visible')) {
 				return false;
@@ -676,28 +680,44 @@ function Messenger(options){
 			return true;
 		}
 		$win.append(that.renderSmilesList());
-		$win.find('.chat-smile-tab li:first-child').trigger('click');
-		if ($win.find('.chat-smile-tab li').length == 1) {
-			$win.find('.chat-smile-tab').hide();
+		$('.chat-smile-tab li:first-child').trigger('click');
+		if ($('.chat-smile-tab li').length == 1) {
+			$('.chat-smile-tab').hide();
 		}
 		return true;
 	};
-	this.closeSmilesList = function(type, id){
-		that.$chatWindow(type, id).find('.chat-smile-list').hide();
+	this.closeSmilesList = function(){
+		$('.chat-smile-list').hide();
 	};
 	this.renderSmilesList = function(){
 		var tabs = '';
-		var tabsContent = '';
 		for (var groupKey in that.smiles) {
 			var group = that.smiles[groupKey];
 			tabs += '<li data-id="'+groupKey+'" title="'+group.title+'">'+group.icon+'</li>';
-			tabsContent += '<div data-id="'+groupKey+'">';
-			for (var key in group.items) {
-				tabsContent += that.renderSmile(groupKey, key);
-			}
-			tabsContent += '</div>';
 		}
-		return '<div class="chat-smile-list"><div class="chat-smile-list-content"><div class="chat-smile-tabcontent">'+tabsContent+'</div><ul class="chat-smile-tab">'+tabs+'</ul></div></div>';
+		return '<div class="chat-smile-list"><div class="chat-smile-list-content"><div class="chat-smile-tabcontent"></div><ul class="chat-smile-tab">'+tabs+'</ul></div></div>';
+	};
+	this.clickSmileTab = function(elem){
+		var $elem = $(elem);
+		$elem.siblings('.active').removeClass('active');
+		$elem.addClass('active');
+		$('.chat-smile-tabcontent div').hide();
+		var $tab = $('.chat-smile-tabcontent div[data-id='+$elem.data('id')+']');
+		if (!$tab.length) {
+			$('.chat-smile-tabcontent').append(that.renderSmilesTab($elem.data('id')));
+			$tab = $('.chat-smile-tabcontent div[data-id='+$elem.data('id')+']');
+		}
+		$tab.show();
+	};
+	this.renderSmilesTab = function(id){
+		var group = that.smiles[id];
+		var tabsContent = '';
+		tabsContent += '<div data-id="'+id+'">';
+		for (var key in group.items) {
+			tabsContent += that.renderSmile(id, key);
+		}
+		tabsContent += '</div>';
+		return tabsContent;
 	};
 	this.renderSmile = function(group, code){
 		if (typeof that.smiles[group] == 'undefined' || typeof that.smiles[group].items[code] == 'undefined') {
@@ -705,13 +725,6 @@ function Messenger(options){
 		}
 		var smile = that.smiles[group].items[code];
 		return '<img class="chat-smile" src="'+that.getAlias(smile.img)+'" data-id="'+group+'.'+code+'"'+(smile.style ? ' style="'+that.getAlias(smile.style)+'"' : '')+'>';
-	};
-	this.clickSmileTab = function(elem){
-		var $elem = $(elem);
-		$elem.siblings('.active').removeClass('active');
-		$elem.addClass('active');
-		$elem.closest('.chat-smile-list').find('.chat-smile-tabcontent div').hide()
-			.filter('[data-id='+$elem.data('id')+']').show();
 	};
 	this.prepareTextSend = function(text){
 		var res = text.replace(/<img[^>]*?data-id="([^"']*?)"[^>]*?>/gm, "&#$1;")
