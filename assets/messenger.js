@@ -95,12 +95,12 @@ function Messenger(options){
 					var $this = $(this);
 					var type = $this.data('type');
 					var id = $this.data('id');
-					var text = $this.html().trim();
-					if (!text) {
-						return;
+					var text = that.prepareTextSend($this.html().trim());
+					if (!text.replace('<br>', '')) {
+						return false;
 					}
 					//console.log('send message');
-					that.socket.emit(type + '.message', {id: id, text: that.prepareTextSend(text)});
+					that.socket.emit(type + '.message', {id: id, text: text});
 					return false;
 				}
 			}
