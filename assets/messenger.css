@@ -477,6 +477,9 @@
 	display: block;
 	clear: both;
 }
+.chat-message a{
+	color: #6fdbe8;
+}
 .chat-message-my .chat-message{
 	float: right;
 	margin-left: 20px;
