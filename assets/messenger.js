@@ -154,8 +154,13 @@ function Messenger(options){
 			that.socket.emit('delete.chat', {type: $item.data('type'), id: $item.data('id')});
 			that.$chatWindow($item.data('type'), $item.data('id')).remove();
 			$item.remove();
+			that.scrollChatList(0);
 		})
 		.on('focus', '.chat-send', function(){
+			var $this = $(this);
+			that.readChatMessages($this.data('type'), $this.data('id'));
+		})
+		.on('mousemove', '.chat-window', function(e){
 			var $this = $(this);
 			that.readChatMessages($this.data('type'), $this.data('id'));
 		})
@@ -303,31 +308,37 @@ function Messenger(options){
 		if (that.chatWindows[type+'-'+id].messages.length) {
 			last = that.chatWindows[type+'-'+id].messages[0].id;
 		}
-		//console.log('get load msgs', last);
 		that.socket.emit('get.chat-messages', {id: id, type: type, last: last});
 	};
 	this.scrollChatList = function(scroll){
 		var $this = that.$chatList();
+		var $contener = $('.chat-items-contener');
 		var $parent = $this.parent();
+		var maxHeight = Number($contener.css('max-height').replace('px', ''));
 		var margin = Number($this.css('margin-top').replace('px', ''));
 		var blockHeight = $parent.outerHeight();
 		var contentHeight = $this.outerHeight();
-		if (contentHeight <= blockHeight) return;
+		if (contentHeight <= blockHeight) {
+			$contener.removeClass('chat-scroll-bottom').removeClass('chat-scroll-top');
+			return;
+		}
 		var newMargin = margin - scroll;
 		if (newMargin-blockHeight < -contentHeight) newMargin = -(contentHeight-blockHeight);
 		if (newMargin > 0) newMargin = 0;
+		if (contentHeight + newMargin < maxHeight) {
+			newMargin = maxHeight - contentHeight;
+		}
 		$this.css('margin-top', newMargin+'px');
 		if (newMargin < 0) {
-			$('.chat-items-contener').addClass('chat-scroll-top');
+			$contener.addClass('chat-scroll-top');
 		} else {
-			$('.chat-items-contener').removeClass('chat-scroll-top');
+			$contener.removeClass('chat-scroll-top');
 		}
-		if (newMargin-blockHeight > -contentHeight) {
-			$('.chat-items-contener').addClass('chat-scroll-bottom');
+		if (contentHeight + newMargin > maxHeight) {
+			$contener.addClass('chat-scroll-bottom');
 		} else {
-			$('.chat-items-contener').removeClass('chat-scroll-bottom');
+			$contener.removeClass('chat-scroll-bottom');
 		}
-		//console.log(blockHeight, contentHeight, margin, newMargin);
 	};
 	this.addNotReadMessages = function(items){
 		for (var key in items) {
