@@ -16,7 +16,7 @@ var chatItems = {};
 
 var chat = {
 	objectModelUser: 'humhub\\modules\\user\\models\\User',
-	objectModelSpace: 'humhub\\modules\\user\\models\\Space',
+	objectModelSpace: 'humhub\\modules\\space\\models\\Space',
 	io: null,
 	init: function(io){
 		this.io = io;

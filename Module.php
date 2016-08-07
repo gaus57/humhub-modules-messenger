@@ -3,6 +3,8 @@
 namespace humhub\modules\messenger;
 
 use humhub\libs\ProfileImage;
+use yii\helpers\Url;
+use Yii;
 
 class Module extends \humhub\components\Module
 {
@@ -38,6 +40,13 @@ class Module extends \humhub\components\Module
             return;
         }
 
+        $event->sender->addItem(array(
+            'label' => Yii::t('MessengerModule.base', 'Messages'),
+            'icon' => '<i class="fa fa-envelope-o"></i>',
+            'url' => Url::to(['/messenger']),
+            'isActive' => (Yii::$app->controller->module && Yii::$app->controller->module->id == 'messenger'),
+        ));
+
         $assets = Assets::register($event->sender->view);
         $params = require(__DIR__ . '/params.php');
         $baseUrl = \Yii::getAlias('@web');
@@ -48,6 +57,9 @@ if (typeof Messenger == 'function') {
         serverUrl: document.location.origin + ':{$params['node_server_port']}',
         baseUrl: '{$baseUrl}',
         assetsUrl: '{$assetsUrl}'
+    });
+    $('.p-chat-msg-text:not(.rendered)').each(function(){
+        $(this).html(messenger.renderMessageText($(this).text())).addClass('rendered');
     });
 }
 END;

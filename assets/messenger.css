@@ -240,13 +240,13 @@
     top: 4px;
     right: 4px;
 }
-.chat-notread-item .chat-item-name{
+.chat-item-name{
 	font-size: 12px;
     white-space: nowrap;
     text-overflow: ellipsis;
     overflow: hidden;
 }
-.chat-notread-item .chat-item-description{
+.chat-item-description{
 	font-size: 9px;
     font-style: italic;
     white-space: nowrap;
@@ -628,4 +628,12 @@
 	border: none;
 	vertical-align: top;
 	margin: 0px 1px;
+}
+
+
+/*
+ * Стили страницы сообщений
+ */
+.chat-page-item{
+	cursor: pointer;
 }

@@ -7,67 +7,67 @@ function Messenger(options){
 	}
 	try {
 		this.socket = io(that.serverUrl);
+
+		// Запрашиваем список чатов
+		that.socket.emit('get.chat-list');
+
+		// Регистрируем слушатели socket.io
+		that.socket.on('chat-messages', function(data){
+			//console.log('message', data);
+			that.chatMessages(data.type, data.id, data.items, data.append, data.end);
+		})
+			.on('chat-list', function(data){
+				that.cacheChatItem(data.items);
+				// console.log('chat list', data);
+				that.chatList(data.items);
+			})
+			.on('notread-messages', function(data){
+				that.addNotReadMessages(data.items);
+			})
+			.on('message.status', function(data){
+				//console.log('send message status', data);
+				if (data.status) {
+					that.$chatWindow(data.type, data.id).find('.chat-send').html('');
+				}
+			})
+			.on('search.chat', function(data){
+				that.cacheChatItem(data.items);
+				//console.log('search result', data);
+				that.searchResult(data.items);
+			})
+			.on('user-id', function(data){
+				that.userId = data.id;
+			})
+			.on('add.chat-status', function(data){
+				if (data.status) {
+					//console.log('add chat', data);
+					that.addChatItem(data.type, data.id);
+				}
+			})
+			.on('chat.ofline', function(data){
+				that.chatOfline(data.type, data.id);
+			})
+			.on('chat.online', function(data){
+				that.chatOnline(data.type, data.id);
+			})
+			.on('messages.read', function(data){
+				that.readMessages(data.items);
+			})
+			.on('disconnect', function(){
+				console.log('chat server is disconnected');
+				that.changeConnectionStatus(false);
+			})
+			.on('connect', function(){
+				console.log('connected to chat server');
+				that.changeConnectionStatus(true);
+			});
 	} catch (err) {
 		console.log('chat server is not started');
-		return;
 	}
 
 	this.pageTitle = $('title').text();
 	this.newMessages = 0;
 
-	// Запрашиваем список чатов
-	that.socket.emit('get.chat-list');
-
-	// Регистрируем слушатели socket.io
-	that.socket.on('chat-messages', function(data){
-			//console.log('message', data);
-			that.chatMessages(data.type, data.id, data.items, data.append, data.end);
-		})
-		.on('chat-list', function(data){
-			that.cacheChatItem(data.items);
-			// console.log('chat list', data);
-			that.chatList(data.items);
-		})
-		.on('notread-messages', function(data){
-			that.addNotReadMessages(data.items);
-		})
-		.on('message.status', function(data){
-			//console.log('send message status', data);
-			if (data.status) {
-				that.$chatWindow(data.type, data.id).find('.chat-send').html('');
-			}
-		})
-		.on('search.chat', function(data){
-			that.cacheChatItem(data.items);
-			//console.log('search result', data);
-			that.searchResult(data.items);
-		})
-		.on('user-id', function(data){
-			that.userId = data.id;
-		})
-		.on('add.chat-status', function(data){
-			if (data.status) {
-				//console.log('add chat', data);
-				that.addChatItem(data.type, data.id);
-			}
-		})
-		.on('chat.ofline', function(data){
-			that.chatOfline(data.type, data.id);
-		})
-		.on('chat.online', function(data){
-			that.chatOnline(data.type, data.id);
-		})
-		.on('messages.read', function(data){
-			that.readMessages(data.items);
-		})
-		.on('disconnect', function(){
-			console.log('chat server is disconnected');
-			that.changeConnectionStatus(false);
-		})
-		.on('connect', function(){
-			console.log('connected to chat server');
-			that.changeConnectionStatus(true);
-		});
 
 	// Регистрируем обработчики событий интерфейса
 	$(document)
@@ -810,4 +810,4 @@ function Messenger(options){
 	};
 	this.smiles = messengerSmiles || {};
 }
-var messanger;
+var messenger;
